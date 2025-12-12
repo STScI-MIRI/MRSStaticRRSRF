@@ -17,8 +17,13 @@ authors = [
 dependencies = [
     "astropy",
     "scipy",
-    "measure_extinction @ git+ssh://git@github.com/karllark/measure_extinction.git"]
+    "measure_extinction @ git+ssh://git@github.com/karllark/measure_extinction.git"
+]
+
 dynamic = ["version"]
+
+[project.scripts]
+mrs_srfcor = "MRSFringeCor.plotting.plot_spectra_dithers_divide:main"
 
 [project.optional-dependencies]
 test = [
