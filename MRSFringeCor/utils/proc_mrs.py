@@ -11,7 +11,7 @@ from jwst.associations.lib.rules_level3_base import DMS_Level3_Base
 
 
 # get defaults for running the different pipeline stages
-from mrs_helpers import rundet1, runspec2, runspec3
+from MRSFringeCor.utils.mrs_helpers import rundet1, runspec2, runspec3
 
 
 # Define a useful function to write out a Lvl3 association file from an input list
@@ -43,7 +43,7 @@ def main():
     starname = args.starname
 
     # absolute path needed for level3 asn file
-    main_path = f"/home/kgordon/Webb/mrs_fringecor/{starname}/"
+    main_path = f"{starname}/"
 
     # Point to where you want the output science results to go
     output_dir = main_path
