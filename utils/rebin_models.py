@@ -10,7 +10,8 @@ from measure_extinction.utils.make_obsdata_from_model import rebin_spectrum
 
 
 if __name__ == "__main__":  # pragma: no cover
-    mfiles = ["delumi_mod_005.fits",
+    mfiles = ["16cygb_mod_005.fits",
+              "delumi_mod_005.fits",
               "mucol_mod_006.fits",
               "hd2811_mod_006.fits",
               "hd163466_mod_005.fits",

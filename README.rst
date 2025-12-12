@@ -27,7 +27,8 @@ Details
 -------
 
 Data reduced using `utils/proc_mrs.py`.  Details of settings are in 
-`utils/mrs_helpers.py`.
+`utils/mrs_helpers.py`.  Leak correction on individual dither spectra
+using `utils/leakcor_files.py`.
 
 Models downloaded from CALSPEC and stored in `models/` subdir.
 
