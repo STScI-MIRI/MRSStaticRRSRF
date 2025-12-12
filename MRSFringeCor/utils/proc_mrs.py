@@ -42,7 +42,6 @@ def main():
     # name of star
     starname = args.starname
 
-    # absolute path needed for level3 asn file
     main_path = f"{starname}/"
 
     # Point to where you want the output science results to go
@@ -85,7 +84,8 @@ def main():
     sstring = f"{output_dir}/jw*mirifu*_cal.fits"
     print(sstring)
     calfiles = np.array(sorted(glob.glob(sstring)))
-    print(calfiles)
+    # remove the path information as this causes issues with the association file
+    calfiles = [cfile.split("/")[-1] for cfile in calfiles]
 
     print("Found " + str(len(calfiles)) + " science files to process")
 
