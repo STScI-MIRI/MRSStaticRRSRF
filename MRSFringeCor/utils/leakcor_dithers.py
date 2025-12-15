@@ -14,8 +14,9 @@ if __name__ == "__main__":  # pragma: no cover
              "16CygB": (["jw01538001001_03102", "jw01538001001_03104", "jw01538001001_03106"], "16cygb_mod_005_r10000.fits", "G"),
              "Athalia": (["jw01549006001_04106", "jw01549006001_04104", "jw01549006001_04102"], None, "asteroid"),
              "Jena": (["jw01549055001_04106", "jw01549055001_04104", "jw01549055001_04102"], None, "asteroid"),
-             "HD283809": (["jw04551001001_03102", "jw04551001001_03104", "jw04551001001_03106"], None, None),
-             "2MASSJ150958": [["jw02183038001_09101", "jw02183038001_07101", "jw02183038001_05101"], None, None],
+             #"HD283809": (["jw04551001001_03102", "jw04551001001_03104", "jw04551001001_03106"], None, None),
+             "2MASSJ150958": (["jw02183038001_09101", "jw02183038001_07101", "jw02183038001_05101"], None, None),
+             "HD29647": (("jw04551002001_04101", "jw04551002001_06101", "jw04551002001_08101"), None, None)
              }
     # fmt: on
 
@@ -28,6 +29,6 @@ if __name__ == "__main__":  # pragma: no cover
             print(file_3a, file_1b)
 
             correct_miri_mrs_spectral_leak(
-                file_3a, file_1b, "leak/MRS_spectral_leak_fractional.fits"
+                file_3a, file_1b, "MRSFringeCor/leak/MRS_spectral_leak_fractional.fits"
             )
 

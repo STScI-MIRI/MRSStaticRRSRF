@@ -175,11 +175,11 @@ if __name__ == "__main__":  # pragma: no cover
 
     if args.chan:
         if args.chan == "1":
-            xrange = [4.8, 7.8]
+            xrange = [4.8, 8.0]
         elif args.chan == "2":
             xrange = [7.25, 12.0]
         elif args.chan == "3":
-            xrange = [11.2, 18.2]
+            xrange = [11.5, 18.0]
         else:
             xrange = [17.5, 29.0]
         ax.set_xlim(xrange)

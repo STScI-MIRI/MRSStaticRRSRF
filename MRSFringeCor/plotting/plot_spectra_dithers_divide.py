@@ -10,6 +10,8 @@ from astropy.units import UnitsWarning
 from astropy.stats import sigma_clipped_stats
 # import astropy.units as u
 
+
+from jwst.residual_fringe.utils import fit_residual_fringes_1d
 # from astropy import constants as const
 # from specutils import Spectrum
 # from specutils.analysis import correlation
@@ -70,6 +72,8 @@ def main():
         chn = int(h["CHANNEL"])
         band = h["BAND"].lower()
 
+        print(chn, band)
+
         # get the residual fringe reference correction
         rfile = f"{ref_path}/mrs_residfringe_chn{chn}_{band}.fits"
         rtab = QTable.read(rfile)
@@ -80,7 +84,8 @@ def main():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UnitsWarning)
             ptab = QTable.read(pipefile, hdu=1)
-        pipeflux = ptab["RF_FLUX"] * (ptab["WAVELENGTH"] ** 2)
+        pwave = ptab["WAVELENGTH"].data
+        pipeflux = ptab["RF_FLUX"].data * np.square(pwave)
         ax.plot(
             ptab["WAVELENGTH"],
             pipeflux / np.nanmedian(pipeflux) + (4.33 * offval),
@@ -93,6 +98,7 @@ def main():
         allspecrf = np.empty((nwaves, 4))
 
         for k, cdith in enumerate(["1", "2", "3", "4"]):
+            print(f"dither = {cdith}")
 
             tfile = cfile.replace("_00001_", f"_0000{cdith}_")
 
@@ -103,26 +109,27 @@ def main():
                 atab = QTable.read(tfile, hdu=1)
 
             pcol = "b"
-            pflux = atab["FLUX"] * (atab["WAVELENGTH"] ** 2)
+            pwave = np.array(atab["WAVELENGTH"].data)
+            pflux = atab["FLUX"].data * np.square(pwave)
             ax.plot(
-                atab["WAVELENGTH"],
+                pwave,
                 pflux / np.nanmedian(pflux) + ((k) * offval),
                 f"{pcol}-",
                 alpha=0.5,
             )
 
-            pfluxrf = atab["RF_FLUX"] * (atab["WAVELENGTH"] ** 2)
+            pfluxrf = atab["RF_FLUX"].data * np.square(pwave)
             allspecrf[:, k] = pfluxrf
-            ax.plot(
-                atab["WAVELENGTH"],
-                pfluxrf / np.nanmedian(pfluxrf) + ((k + 0.33) * offval),
-                f"c-",
-                alpha=0.5,
-            )
+            # ax.plot(
+            #     pwave,
+            #     pfluxrf / np.nanmedian(pfluxrf) + ((k + 0.33) * offval),
+            #     "c-",
+            #     alpha=0.5,
+            # )
 
             # determine if there is a shift
-            refwave = rtab["wavelength"][0:nwaves]
-            refspec = rtab[f"dither{cdith}"][0:nwaves]
+            refwave = rtab["wavelength"][0:nwaves].data
+            refspec = rtab[f"dither{cdith}"][0:nwaves].data
 
             # ospec = Spectrum(spectral_axis=atab["WAVELENGTH"], flux=pflux)
             # tspec = Spectrum(spectral_axis=refwave * u.micron, flux=refspec * u.Jy)
@@ -140,20 +147,32 @@ def main():
             # ref correction
             ax.plot(
                 refwave,
-                refspec + (k * offval),
-                "k--",
+                refspec + ((k + 0.33) * offval),
+                color="red",
+                linestyle="-",
                 alpha=0.5,
             )
 
             # corrected spectra
-            corflux = pflux.value / refspec
+            corflux = pflux / refspec
             allspec[:, k] = corflux
             ax.plot(
-                rtab["wavelength"][0:nwaves],
+                refwave,
                 corflux / np.nanmedian(corflux) + ((k + 0.67) * offval),
-                "k-",
+                color="purple",
+                linestyle="-",
                 alpha=0.5,
             )
+
+            # residual definging on individual dithers
+            # sdefringe = fit_residual_fringes_1d(corflux, refwave, channel=chn+1)
+            # ax.plot(
+            #     refwave,
+            #     sdefringe / np.nanmedian(sdefringe) + ((k + 0.33) * offval),
+            #     "c-",
+            #     alpha=0.75,
+            # )
+            # allspec[:, k] = corflux
 
         # make average corrected spectrum
         specclipped = sigma_clipped_stats(allspec, axis=1, sigma=2.0)
@@ -161,24 +180,29 @@ def main():
         ax.plot(
             refwave,
             avespec / np.nanmedian(avespec) + (5 * offval),
-            "k-",
+            color="purple",
+            linestyle="-",
             alpha=0.75,
         )
 
+        sdefringe = fit_residual_fringes_1d(avespec, refwave, channel=chn+1)
+
         # residual definging on the final average
         # sdefringe = rf1d(avespec, refwave, chn+1)
-        # ax.plot(
-        #     refwave,
-        #     sdefringe / np.nanmedian(sdefringe) + (5.33 * offval),
-        #     "r-",
-        #     alpha=0.75,
-        # )
+        ax.plot(
+            refwave,
+            sdefringe / np.nanmedian(sdefringe) + (5.33 * offval),
+            linestyle="-",
+            color="black",
+            alpha=0.75,
+        )
 
         ofile = f"{cname}/{cname}_static_rfcorr_ch{chn}-{band}_x1d.fits"
         otab = QTable()
-        otab["WAVELENGTH"] = rtab["wavelength"][0:nwaves]
-        otab["FLUX"] = avespec / (rtab["wavelength"][0:nwaves] ** 2)
-        otab["FLUX_ERROR"] = specclipped[2] / (rtab["wavelength"][0:nwaves] ** 2)
+        otab["WAVELENGTH"] = refwave
+        otab["FLUX"] = avespec / np.square(refwave)
+        otab["FLUX_ERROR"] = specclipped[2] / np.square(refwave)
+        otab["RF_FLUX"] = sdefringe / np.square(refwave)
         otab.write(ofile, overwrite=True)
 
         # make average pipline rf corrected spectrum
@@ -204,14 +228,17 @@ def main():
         else:
             xrange = [17.5, 29.0]
         ax.set_xlim(xrange)
+        channame = args.chan
+    else:
+        channame = "all"
 
-    ax.set_ylim(0.95, 1.05 + (5 * offval))
+    ax.set_ylim(0.95, 1.10 + (5 * offval))
 
     # ax.legend()
 
     fig.tight_layout()
 
-    save_str = "figs/dither_divide"
+    save_str = f"figs/{args.starname}_dither_divide_chn{channame}"
     if args.png:
         fig.savefig(f"{save_str}.png")
     elif args.pdf:
