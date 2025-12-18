@@ -15,6 +15,20 @@ from jwst.residual_fringe.utils import fit_residual_fringes_1d
 from MRSStaticRRSRF.utils.helpers import rydberg
 
 
+def custest(x, axis=0):
+    outx = np.zeros(len(x))
+    for k, cx in enumerate(x):
+        gvals = np.isfinite(cx)
+        if np.sum(gvals) > 1:
+            sx = np.sort(cx[gvals])
+            outx[k] = sx[0]
+        elif np.sum(gvals) == 1:
+            outx[k] = cx[gvals][0]
+        else:
+            outx[k] = np.nan
+    return outx
+
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -199,7 +213,7 @@ def main():
             # allspec[:, k] = corflux
 
         # make average corrected spectrum
-        specclipped = sigma_clipped_stats(allspec, axis=1, sigma=2.0)
+        specclipped = sigma_clipped_stats(allspec, axis=1, sigma=2.0, cenfunc=custest)
         avespec = specclipped[0]
         ax.plot(
             refwave,
@@ -209,8 +223,8 @@ def main():
             alpha=0.75,
         )
 
-
-        sdefringe = fit_residual_fringes_1d(avespec, refwave, channel=chn + 1, ignore_regions=maskreg)
+        sdefringe = fit_residual_fringes_1d(avespec, refwave, channel=chn + 1)  #, ignore_regions=maskreg)
+        # sdefringe = avespec
         rfringecor = sdefringe / avespec
 
         ckey = f"{chn}{band}"
@@ -296,7 +310,7 @@ def main():
 
     fig.tight_layout()
 
-    save_str = f"figs/{args.starname}_dither_divide_chn{channame}"
+    save_str = f"{args.starname}/{args.starname}_dither_divide_chn{channame}"
     if args.png:
         fig.savefig(f"{save_str}.png")
     elif args.pdf:

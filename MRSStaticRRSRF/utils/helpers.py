@@ -1,5 +1,6 @@
 import numpy as np
 import astropy.units as u
+from scipy.signal import medfilt
 
 
 # Return wavelength in microns rounded to 5 decimals
@@ -8,6 +9,21 @@ def rydberg(n1, n2):
     linv = R * ((1 / (n1 * n1)) - (1 / (n2 * n2)))
     lvalue = 1e6 / linv
     return np.round(lvalue, 7)
+
+
+def clean_crs(pflux, sigma_fac=5, width=11):
+    medpflux = medfilt(pflux.astype(float), width)
+
+    # determine the noise
+    devvals = pflux/medpflux
+    stddev = np.nanstd(devvals)
+    # print(f"S/N = {np.nanmedian(pflux) / stddev}")
+
+    # remove data that is far from the median
+    bvals = np.absolute((pflux / medpflux) - 1) > sigma_fac * stddev
+    pflux[bvals] = np.nan
+        
+    return pflux
 
 
 def _wavegrid(resolution, wave_range):

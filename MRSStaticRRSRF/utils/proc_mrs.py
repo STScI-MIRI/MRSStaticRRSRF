@@ -136,28 +136,28 @@ def main():
             f"{ref_path}/MRS_spectral_leak_fractional.fits",
         )
 
-    rc("axes", linewidth=2)
-    fig, ax = plt.subplots(1, 1, figsize=(15, 10), dpi=100)
+    # rc("axes", linewidth=2)
+    # fig, ax = plt.subplots(1, 1, figsize=(15, 10), dpi=100)
 
-    pcols = ["b", "g", "c", "m"]
-    ccol = pcols[0]
-    sfiles = glob.glob(f"{starname}/*x1d.fits")
-    print(sfiles)
-    for cfile in sfiles:
-        cdata = fits.getdata(cfile, 1)
-        ax.plot(
-            cdata["WAVELENGTH"],
-            cdata["FLUX"] * cdata["WAVELENGTH"] * cdata["WAVELENGTH"],
-            f"{ccol}-",
-            alpha=0.75,
-        )
+    # pcols = ["b", "g", "c", "m"]
+    # ccol = pcols[0]
+    # sfiles = glob.glob(f"{starname}/*x1d.fits")
+    # print(sfiles)
+    # for cfile in sfiles:
+    #     cdata = fits.getdata(cfile, 1)
+    #     ax.plot(
+    #         cdata["WAVELENGTH"],
+    #         cdata["FLUX"] * cdata["WAVELENGTH"] * cdata["WAVELENGTH"],
+    #         f"{ccol}-",
+    #         alpha=0.75,
+    #     )
 
-    ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    ax.set_ylabel(r"Flux [RJ units, Jy $\mu$m$^2$]")
-    ax.set_title(args.starname)
+    # ax.set_xlabel(r"$\lambda$ [$\mu$m]")
+    # ax.set_ylabel(r"Flux [RJ units, Jy $\mu$m$^2$]")
+    # ax.set_title(args.starname)
 
-    fname = f"{output_dir}/{args.starname}_1dspec"
-    fig.savefig(f"{fname}.png")
+    # fname = f"{output_dir}/{args.starname}_1dspec"
+    # fig.savefig(f"{fname}.png")
 
 
 if __name__ == "__main__":

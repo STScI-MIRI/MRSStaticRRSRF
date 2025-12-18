@@ -7,7 +7,7 @@ from astropy.table import QTable
 import astropy.units as u
 from astropy.io import fits
 
-from MRSStaticRRSRF.utils.helpers import rebin_constres, rydberg
+from MRSStaticRRSRF.utils.helpers import rebin_constres, rydberg, clean_crs
 
 
 def main():
@@ -18,6 +18,7 @@ def main():
         help="plot the pipeline residual fringe correction",
         action="store_true",
     )
+    parser.add_argument("--showchan4", help="show channel 4 with other channels", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -52,7 +53,7 @@ def main():
     nwaves = int((wrange[1] - wrange[0]) / dwave)
     allspec = np.full((nwaves, n_orders), np.nan)
     allunc = np.full((nwaves, n_orders), np.nan)
-    offval = 2.0
+    offval = None
 
     # fmt: off
     pcolors = ["violet", "mediumorchid", "purple",
@@ -74,15 +75,21 @@ def main():
             bnum = 2
         pcol = pcolors[(chn - 1) * 3 + bnum]
 
+        if (not args.showchan4) & (chn == 4):
+            continue
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=u.UnitsWarning)
             itab = QTable.read(cfile, hdu=1)
-        cflux = itab[fluxkey] * np.power(itab["WAVELENGTH"], 2.0)
-        ax.plot(itab["WAVELENGTH"], cflux, linestyle="-", color=pcol, alpha=0.8)
-
+        cflux = clean_crs(itab[fluxkey].value)
         cwave = itab["WAVELENGTH"].value
-        cflux = itab[fluxkey].value
         cunc = itab["FLUX_ERROR"].value
+
+        tpflux = cflux * np.power(cwave, 2.0)
+        ax.plot(cwave, tpflux, linestyle="-", color=pcol, alpha=0.8)
+
+        if offval is None:
+            offval = np.nanmedian(tpflux) * 0.2
 
         nwave, nflux, nunc, nnpts = rebin_constres(
             cwave * u.micron, cflux, cunc, wrange * u.micron, 2 * res
@@ -96,7 +103,6 @@ def main():
             multfac = 1.0
         if k > 0:
             padwave = 0.002
-            pgvals = np.isfinite(pflux)
             minwave = max([np.nanmin(cwave), np.nanmin(pwave)]) + padwave
             maxwave = min([np.nanmax(cwave), np.nanmax(pwave)]) - padwave
             gwaves1 = (cwave > minwave) & (cwave < maxwave)
@@ -202,7 +208,7 @@ def main():
 
     plt.tight_layout()
 
-    fname = f"icydust_{sname}"
+    fname = f"{sname}/{sname}"
     if args.pipe_rfcor:
         fname = f"{fname}_pipe_rfcor"
     if args.png:
