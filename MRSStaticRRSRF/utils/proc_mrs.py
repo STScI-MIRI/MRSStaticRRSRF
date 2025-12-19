@@ -75,11 +75,12 @@ def main():
         print("Skipping Detector1 processing")
 
     # add full image dither pair subtractions, only need dither 1 files here
-    files = (glob.glob(f"{main_path}/jw*_00001_*mirifushort_rate.fits") +
-             glob.glob(f"{main_path}/jw*_00001_*mirifulong_rate.fits"))
-    ratefiles = sorted(files)
-    ratefiles = np.array(ratefiles)
-    subdithers(ratefiles)
+    if dospec2:
+        files = (glob.glob(f"{main_path}/jw*_00001_*mirifushort_rate.fits") +
+                glob.glob(f"{main_path}/jw*_00001_*mirifulong_rate.fits"))
+        ratefiles = sorted(files)
+        ratefiles = np.array(ratefiles)
+        subdithers(ratefiles)
 
     # Look for uncalibrated science slope files from the Detector1 pipeline
     sstring = f"{main_path}/jw*mirifu*dithsub_rate.fits"
