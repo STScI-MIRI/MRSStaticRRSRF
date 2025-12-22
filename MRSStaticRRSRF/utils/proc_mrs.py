@@ -4,8 +4,6 @@ import glob
 import importlib.resources as importlib_resources
 from astropy.io import fits
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import rc
 
 from jwst.associations import asn_from_list as afl
 from jwst.associations.lib.rules_level3_base import DMS_Level3_Base
@@ -27,11 +25,6 @@ def writel3asn(scifiles, bgfiles, asnfile, prodname):
     # Define the basic association of science files
     asn = afl.asn_from_list(scifiles, rule=DMS_Level3_Base, product_name=prodname)
 
-    # Add background files to the association
-    # nbg=len(bgfiles)
-    # for ii in range(0,nbg):
-    #     asn['products'][0]['members'].append({'expname': bgfiles[ii], 'exptype': 'background'})
-
     # Write the association to a json file
     _, serialized = asn.dump()
     with open(asnfile, "w") as outfile:
@@ -41,6 +34,9 @@ def writel3asn(scifiles, bgfiles, asnfile, prodname):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="name of star")
+    parser.add_argument(
+        "--nodithsub", help="do not do the pair dither subtraction", action="store_true"
+    )
     parser.add_argument("--det1skip", help="skip dectector1", action="store_true")
     parser.add_argument("--spec2skip", help="skip dectector1", action="store_true")
     parser.add_argument("--spec3skip", help="skip dectector1", action="store_true")
@@ -75,18 +71,23 @@ def main():
         print("Skipping Detector1 processing")
 
     # add full image dither pair subtractions, only need dither 1 files here
-    if dospec2:
-        files = (glob.glob(f"{main_path}/jw*_00001_*mirifushort_rate.fits") +
-                glob.glob(f"{main_path}/jw*_00001_*mirifulong_rate.fits"))
+    if dospec2 & (not args.nodithsub):
+        files = glob.glob(f"{main_path}/jw*_00001_*mirifushort_rate.fits") + glob.glob(
+            f"{main_path}/jw*_00001_*mirifulong_rate.fits"
+        )
         ratefiles = sorted(files)
         ratefiles = np.array(ratefiles)
         subdithers(ratefiles)
 
     # Look for uncalibrated science slope files from the Detector1 pipeline
-    sstring = f"{main_path}/jw*mirifu*dithsub_rate.fits"
-    print(sstring)
-    ratefiles = sorted(glob.glob(sstring))
-    ratefiles = np.array(ratefiles)
+    if args.nodithsub:
+        ratefiles = glob.glob(f"{main_path}/jw*mirifushort_rate.fits") + glob.glob(
+            f"{main_path}/jw*mirifulong_rate.fits"
+        )
+    else:
+        sstring = f"{main_path}/jw*mirifu*dithsub_rate.fits"
+        ratefiles = sorted(glob.glob(sstring))
+
     print("Found " + str(len(ratefiles)) + " input files to process")
 
     if dospec2:
@@ -96,9 +97,16 @@ def main():
         print("Skipping Spec2 processing")
 
     # Science Files need the cal.fits files
-    sstring = f"{output_dir}/jw*mirifu*_cal.fits"
-    print(sstring)
-    calfiles = np.array(sorted(glob.glob(sstring)))
+    if args.nodithsub:
+        sstring = f"{output_dir}/jw*mirifu*_cal.fits"
+        calfiles = np.array(sorted(glob.glob(sstring)))
+        asnname = f"{starname}_level3"
+    else:
+        calfiles = glob.glob(f"{main_path}/jw*mirifushort_cal.fits") + glob.glob(
+            f"{main_path}/jw*mirifulong_cal.fits"
+        )
+        asnname = f"{starname}_dithsub_level3"
+
     # remove the path information as this causes issues with the association file
     calfiles = [cfile.split("/")[-1] for cfile in calfiles]
 
@@ -107,7 +115,7 @@ def main():
     # Make an association file that includes all of the different exposures
     asnfile = os.path.join(output_dir, "l3asn.json")
     if dospec3:
-        writel3asn(calfiles, None, asnfile, f"{starname}_level3")
+        writel3asn(calfiles, None, asnfile, asnname)
 
     print(asnfile)
     if dospec3:
@@ -118,7 +126,12 @@ def main():
     # do the leak correction for the individual dithers
     cname = args.starname
     # get the 1st dithers only
-    files = glob.glob(f"{cname}/*00001*_dithsub_*x1d.fits")
+    if args.nodithsub:
+        files = glob.glob(f"{main_path}/jw*mirifushort_?_x1d.fits") + glob.glob(
+            f"{main_path}/jw*mirifulong_?_x1d.fits")
+        lfiles = f"{cname}/*00001*_dithsub_*x1d.fits"
+    else:
+        files = glob.glob(f"{cname}/*00001*_dithsub_*x1d.fits")
 
     print("correcting the leak in 3A using 1B")
     for cfile in files:
@@ -143,29 +156,6 @@ def main():
             file_1b.replace("_00001_", f"_0000{cdith}_"),
             f"{ref_path}/MRS_spectral_leak_fractional.fits",
         )
-
-    # rc("axes", linewidth=2)
-    # fig, ax = plt.subplots(1, 1, figsize=(15, 10), dpi=100)
-
-    # pcols = ["b", "g", "c", "m"]
-    # ccol = pcols[0]
-    # sfiles = glob.glob(f"{starname}/*x1d.fits")
-    # print(sfiles)
-    # for cfile in sfiles:
-    #     cdata = fits.getdata(cfile, 1)
-    #     ax.plot(
-    #         cdata["WAVELENGTH"],
-    #         cdata["FLUX"] * cdata["WAVELENGTH"] * cdata["WAVELENGTH"],
-    #         f"{ccol}-",
-    #         alpha=0.75,
-    #     )
-
-    # ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    # ax.set_ylabel(r"Flux [RJ units, Jy $\mu$m$^2$]")
-    # ax.set_title(args.starname)
-
-    # fname = f"{output_dir}/{args.starname}_1dspec"
-    # fig.savefig(f"{fname}.png")
 
 
 if __name__ == "__main__":
