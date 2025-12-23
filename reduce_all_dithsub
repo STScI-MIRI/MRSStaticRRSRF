@@ -3,5 +3,5 @@
 
 for CSTAR in 16CygB Athalia delUMi HD163466_c1 HD2811_c1 HD2811_c2 HD2811_c3 HD2811_c4 HR5467 Jena muCol
 do
-    nice -n 19 mrs_proc $CSTAR >& logs/$CSTAR".log" &
+    nice -n 19 mrs_proc --dithsub $CSTAR >& logs/$CSTAR".log" &
 done
