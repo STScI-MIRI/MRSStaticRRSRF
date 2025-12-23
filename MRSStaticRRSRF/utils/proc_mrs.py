@@ -133,10 +133,12 @@ def main():
     if args.dithsub:
         sstring = f"{main_path}/jw*mirifu*dithsub_rate.fits"
         ratefiles = sorted(glob.glob(sstring))
+        badpix_selfcal = False
     else:
         ratefiles = glob.glob(f"{main_path}/jw*mirifushort_rate.fits") + glob.glob(
             f"{main_path}/jw*mirifulong_rate.fits"
         )
+        badpix_selfcal = True
 
     print("Found " + str(len(ratefiles)) + " input files to process")
 
@@ -148,7 +150,7 @@ def main():
         for file in ratefiles:
             asnfile = os.path.join(output_dir, 'l2asn.json')
             writel2asn(file, None, ratefiles, asnfile, 'Level2')
-            runspec2(asnfile, output_dir)
+            runspec2(asnfile, output_dir, badpix_selfcal=badpix_selfcal)
     else:
         print("Skipping Spec2 processing")
 
