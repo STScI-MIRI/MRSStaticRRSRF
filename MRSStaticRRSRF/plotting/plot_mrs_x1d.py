@@ -7,12 +7,13 @@ from astropy.table import QTable
 import astropy.units as u
 from astropy.io import fits
 
-from MRSStaticRRSRF.utils.helpers import rebin_constres, rydberg, clean_crs
+from MRSStaticRRSRF.utils.helpers import pcolors, rebin_constres, get_h_waves
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="Name of the star and subdirectory with the MRS data")
+    parser.add_argument("--dithsub", help="use the dither pair subtraction reduction", action="store_true")
     parser.add_argument(
         "--pipe_rfcor",
         help="plot the pipeline residual fringe correction",
@@ -34,11 +35,16 @@ def main():
 
     sname = args.starname
 
+    if args.dithsub:
+        extstr = "dithsub_"
+    else:
+        extstr = ""
+
     if args.pipe_rfcor:
-        filetag = "level3"
+        filetag = f"{extstr}level3"
         fluxkey = "RF_FLUX"
     else:
-        filetag = "static_rfcorr"
+        filetag = f"{extstr}static_rfcorr"
         fluxkey = "RF_FLUX"
 
     files = []
@@ -55,11 +61,6 @@ def main():
     allunc = np.full((nwaves, n_orders), np.nan)
     offval = None
 
-    # fmt: off
-    pcolors = ["violet", "mediumorchid", "purple",
-               "darkblue", "blue", "dodgerblue",
-               "limegreen", "forestgreen", "chartreuse",
-               "lightcoral", "orangered", "red"]
     # fmt: on
     for k, cfile in enumerate(files):
         print(cfile)
@@ -156,38 +157,15 @@ def main():
     outtab["wavelength"] = allwave
     outtab["flux"] = finspec * u.Jy
     outtab["unc"] = finunc * u.Jy
-    oname = f"{sname}/{sname}_constres_merged_mrs.fits"
+    oname = f"{sname}/{sname}{extstr}_constres_merged_mrs.fits"
     if args.pipe_rfcor:
         oname = oname.replace("_mrs", "_mrs_pipe_rfcor")
     outtab.write(oname, overwrite=True)
 
     # plot hydrogen transitions
     y1 = yrange[0] + 0.05 * (yrange[1] - yrange[0])
-    hnames = []
-    hwaves = []
+    hnames, hwaves = get_h_waves()
 
-    # Pfund series
-    n1 = 5
-    for n2 in range(6, 7, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    # Humphreys series
-    n1 = 6
-    for n2 in range(7, 11, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    n1 = 7
-    for n2 in range(8, 18, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    n1 = 8
-    for n2 in range(10, 13, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    n1 = 9
-    for n2 in range(12, 15, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
 
     for cname, cwave in zip(hnames, hwaves):
         ax.text(
@@ -209,7 +187,7 @@ def main():
 
     plt.tight_layout()
 
-    fname = f"{sname}/{sname}"
+    fname = f"{sname}/{sname}{extstr}"
     if args.pipe_rfcor:
         fname = f"{fname}_pipe_rfcor"
     if args.png:

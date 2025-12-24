@@ -8,7 +8,10 @@ from astropy.table import QTable
 from astropy.units import UnitsWarning
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.modeling import models, fitting
+from astropy.stats import sigma_clipped_stats
 import astropy.units as u
+
+from MRSStaticRRSRF.utils.helpers import sinfo, get_h_waves
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -16,6 +19,7 @@ if __name__ == "__main__":  # pragma: no cover
     parser.add_argument(
         "--chan", help="plot only one channel", choices=["1", "2", "3", "4"]
     )
+    parser.add_argument("--onlyseg", help="show only one segment")
     parser.add_argument("--dithsub", help="use dithsub pairs", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
@@ -39,27 +43,24 @@ if __name__ == "__main__":  # pragma: no cover
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
-    # fmt: off
-    #   info is ([short, medium, long], model file, type)
-    sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001_08101"], "mucol_mod_006_r10000.fits", "hot"),
-             "delUMi": (["jw01536024001_04102", "jw01536024001_04104", "jw01536024001_04106"], "delumi_mod_005_r10000.fits", "A"),
-             "HR5467": (["jw04496009001_03102", "jw04496009001_03104", "jw04496009001_03106"], "hd128998_mod_004_r10000.fits", "A"),
-             "HD2811_c1": (["jw01536022001_08101", "jw01536022001_06101", "jw01536022001_06101"], "hd2811_mod_006_r10000.fits", "A"),
-             "HD2811_c2": (["jw04496002001_04106", "jw04496002001_04104", "jw04496002001_04102"], "hd2811_mod_006_r10000.fits", "A"),
-             "HD2811_c3": (["jw06604006001_08101", "jw06604006001_06101", "jw06604006001_04101"], "hd2811_mod_006_r10000.fits", "A"),
-             "HD2811_c4": (["jw07487105001_03106", "jw07487105001_03104", "jw07487105001_03102"], "hd2811_mod_006_r10000.fits", "A"),
-             # "16CygB": (["jw01538001001_03102", "jw01538001001_03104", "jw01538001001_03106"], "16cygb_mod_005_r10000.fits", "G"),
-             "Athalia": (["jw01549006001_04106", "jw01549006001_04104", "jw01549006001_04102"], None, "asteroid"),
-             "Jena": (["jw01549055001_04106", "jw01549055001_04104", "jw01549055001_04102"], None, "asteroid"),
-             }
-    # fmt: on
     n_obs = len(sinfo)
 
     gnames = ["short", "medium", "long"]
 
-    n_lines = len(sinfo.keys())
-    cmap = plt.cm.Set1
-    colors = [cmap(i / n_lines) for i in range(n_lines)]
+    # regions to mask for hot and A stars
+    hnames, hwaves = get_h_waves()
+    # only include lines above 6.5 micron
+    #  correction ok and G stars/asteroids not useable
+    gvals = hwaves > 6.5
+    mask_waves = hwaves[gvals]
+    # add extra lines
+    mask_waves = np.concatenate((mask_waves, [12.57]))
+    mask_hwidth = 0.02
+
+    mask_waves_a = np.array([9.39])
+
+    mask_waves_g = np.array([12.57, 14.18, 16.40])
+    mask_hwidth_g = 0.04
 
     offval = 0.15
     max_waves = 1500
@@ -74,7 +75,7 @@ if __name__ == "__main__":  # pragma: no cover
     firsttime = True
     for m, cname in enumerate(sinfo.keys()):
         pname = cname
-        cfiles, mfile, stype = sinfo[cname]
+        cfiles, mfile, stype, scolor = sinfo[cname]
 
         # get the model
         if mfile is not None:
@@ -85,10 +86,19 @@ if __name__ == "__main__":  # pragma: no cover
 
         for n, dname in enumerate(cfiles):
             for csub in ["short", "long"]:
+
                 for cwave in ["0", "1"]:
+
+                    if csub == "short":
+                        chn = int(cwave)
+                    else:
+                        chn = int(cwave) + 2
+
                     for k, cdith in enumerate(["1", "2", "3", "4"]):
 
-                        cfile = f"{dname}_0000{cdith}_mirifu{csub}{extstr}_{cwave}_x1d.fits"
+                        cfile = (
+                            f"{dname}_0000{cdith}_mirifu{csub}{extstr}_{cwave}_x1d.fits"
+                        )
                         if (csub == "long") & (cwave == "0") & (n == 0):
                             cfile = cfile.replace(".fits", "_leakcor.fits")
                         with warnings.catch_warnings():
@@ -108,6 +118,15 @@ if __name__ == "__main__":  # pragma: no cover
                             if max(pwave.value) > 20.0:
                                 useseg = False
 
+                        # do not use G stars for chan 1 short/medium, molecular lines
+                        if (stype == "G") & (chn == 0) & (n <= 1):
+                            useseg = False
+
+                        # segment focus
+                        if args.onlyseg:
+                            if args.onlyseg != f"{chn+1}{gnames[n]}":
+                                useseg = False
+
                         # get the convolved model for this segment
                         if mfile is not None:
                             if cdith == "1":
@@ -121,18 +140,26 @@ if __name__ == "__main__":  # pragma: no cover
                                         pwave,
                                         mfluxseg + 4.5 * offval,
                                         linestyle="--",
-                                        color=colors[m],
+                                        color=scolor,
                                         alpha=0.5,
                                     )
 
                             # remove data where stellar lines are not well corrected
-                            if stype == "hot":
-                                gvals = (pwave.value > 7.43) & (pwave.value < 7.52)
+                            if stype in ["hot", "A"]:
+                                tmask_hwidth = mask_hwidth
+                                tmask_waves = mask_waves
+                                if stype == "A":
+                                    tmask_waves = np.concatenate([tmask_waves, mask_waves_a])
+                            elif stype in ["G"]:
+                                tmask_hwidth = mask_hwidth_g
+                                tmask_waves = mask_waves_g
+                            else:
+                                tmask_waves = []
+                            for twave in tmask_waves:
+                                gvals = (
+                                    np.absolute(pwave.value - twave) <= tmask_hwidth
+                                )
                                 pflux[gvals] = np.nan
-                            gvals = (pwave.value > 16.18) & (pwave.value < 16.23)
-                            pflux[gvals] = np.nan
-                            gvals = (pwave.value > 12.35) & (pwave.value < 12.41)
-                            pflux[gvals] = np.nan
                         else:
                             # fit a line - asteroids
                             fit = fitting.LinearLSQFitter()
@@ -148,16 +175,11 @@ if __name__ == "__main__":  # pragma: no cover
                                 pwave,
                                 pflux + (k * offval),
                                 linestyle="-",
-                                color=colors[m],
+                                color=scolor,
                                 alpha=0.5,
                                 label=pname,
                             )
                             pname = None
-
-                            if csub == "short":
-                                chn = int(cwave)
-                            else:
-                                chn = int(cwave) + 2
 
                             if firsttime:
                                 allwave = np.full((max_waves, 4, 3), np.nan)
@@ -168,7 +190,9 @@ if __name__ == "__main__":  # pragma: no cover
                                 allwave[0:n_waves, chn, n] = atab["WAVELENGTH"]
                             allspec[0:n_waves, chn, n, k, m] = pflux
 
-    avefringes = np.nanmedian(allspec, axis=4)
+    # avefringes = np.nanmedian(allspec, axis=4)
+    fclipped = sigma_clipped_stats(allspec, axis=4, sigma=2.0)  # , cenfunc=custest)
+    avefringes = fclipped[0]
     for i in range(4):  # channels
         otab = QTable()
         for j in range(3):  # grating settings
@@ -183,7 +207,10 @@ if __name__ == "__main__":  # pragma: no cover
                     color="black",
                     alpha=0.7,
                 )
-            otab.write(f"MRSStaticRRSRF/refs/mrs_residfringe{extstr}_chn{i+1}_{gnames[j]}.fits", overwrite=True)
+            otab.write(
+                f"MRSStaticRRSRF/refs/mrs_residfringe{extstr}_chn{i+1}_{gnames[j]}.fits",
+                overwrite=True,
+            )
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
     ax.set_ylabel(r"$\lambda^2 F(\nu)$ / median + const")
@@ -202,11 +229,12 @@ if __name__ == "__main__":  # pragma: no cover
         channame = "all"
         xrange = [4.7, 29.0]
 
-    ax.set_xlim(xrange)
+    if not args.onlyseg:
+        ax.set_xlim(xrange)
 
     ax.set_ylim(0.95, 1.05 + (5.5 * offval))
 
-    ax.legend(ncol=2, fontsize=0.8*fontsize)
+    ax.legend(ncol=2, fontsize=0.8 * fontsize)
 
     fig.tight_layout()
 

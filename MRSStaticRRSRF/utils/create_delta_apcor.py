@@ -35,9 +35,10 @@ def main():
     plt.rc("ytick.major", width=2)
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 6))
 
-    offval = 0.05 
+    offval = 0.1
 
     names = ["HD2811_c1", "HD2811_c3"]
+    names = ["Athalia", "Jena"]
     for cname in names:
 
         # get the 1st dithers only
@@ -59,7 +60,9 @@ def main():
 
             for k, cdith in enumerate(["1", "2", "3", "4"]):
 
-                tfile = (cfile.replace("_dithsub","")).replace("_00001_", f"_0000{cdith}_")
+                tfile = (cfile.replace("_dithsub", "")).replace(
+                    "_00001_", f"_0000{cdith}_"
+                )
                 tfile_dithsub = cfile.replace("_00001_", f"_0000{cdith}_")
 
                 with warnings.catch_warnings():
@@ -70,18 +73,24 @@ def main():
                 pwave = atab["WAVELENGTH"]
                 pratio = atab_dithsub["FLUX"] / atab["FLUX"]
 
-                ax.plot(pwave, pratio + (k * offval), linestyle="-", color=pcol, alpha=0.7)
+                ax.plot(
+                    pwave, pratio + (k * offval), linestyle="-", color=pcol, alpha=0.7
+                )
 
                 pflux = atab_dithsub["FLUX"] * np.square(atab_dithsub["WAVELENGTH"])
-                ax.plot(pwave, pflux / np.nanmedian(pflux) + k * offval, "r-", alpha=0.5)
+                ax.plot(
+                    pwave, pflux / np.nanmedian(pflux) + k * offval, "r-", alpha=0.5
+                )
 
                 pflux = atab["FLUX"] * np.square(atab["WAVELENGTH"])
-                ax.plot(pwave, pflux / np.nanmedian(pflux) + k * offval, "g-", alpha=0.5)
+                ax.plot(
+                    pwave, pflux / np.nanmedian(pflux) + k * offval, "g-", alpha=0.5
+                )
 
     for k in range(4):
         ax.plot([4.5, 30.0], np.array([1.0, 1.0]) + k * offval, "k--")
 
-    ax.set_ylim(0.95, 1.6 + (4 * offval))
+    ax.set_ylim(0.95, 1.1 + (4 * offval))
 
     fig.tight_layout()
 

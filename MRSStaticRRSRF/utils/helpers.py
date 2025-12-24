@@ -3,6 +3,28 @@ import astropy.units as u
 from scipy.signal import medfilt
 
 
+# fmt: off
+#   info is ([short, medium, long], model file, type)
+sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001_08101"], "mucol_mod_006_r10000.fits", "hot", "purple"),
+            "delUMi": (["jw01536024001_04102", "jw01536024001_04104", "jw01536024001_04106"], "delumi_mod_005_r10000.fits", "A", "dodgerblue"),
+            "HR5467": (["jw04496009001_03102", "jw04496009001_03104", "jw04496009001_03106"], "hd128998_mod_004_r10000.fits", "A", "aqua"),
+            "HD2811_c1": (["jw01536022001_08101", "jw01536022001_06101", "jw01536022001_04101"], "hd2811_mod_006_r10000.fits", "A", "forestgreen"),
+            "HD2811_c2": (["jw04496002001_04106", "jw04496002001_04104", "jw04496002001_04102"], "hd2811_mod_006_r10000.fits", "A", "green"),
+            "HD2811_c3": (["jw06604006001_08101", "jw06604006001_06101", "jw06604006001_04101"], "hd2811_mod_006_r10000.fits", "A", "seagreen"),
+            # "HD2811_c4": (["jw07487105001_03106", "jw07487105001_03104", "jw07487105001_03102"], "hd2811_mod_006_r10000.fits", "A", "limegreen"),
+            "16CygB": (["jw01538001001_03102", "jw01538001001_03104", "jw01538001001_03106"], "16cygb_mod_005_r10000.fits", "G", "orange"),
+            "Athalia": (["jw01549006001_04106", "jw01549006001_04104", "jw01549006001_04102"], None, "asteroid", "lightcoral"),
+            "Jena": (["jw01549055001_04106", "jw01549055001_04104", "jw01549055001_04102"], None, "asteroid", "indianred"),
+            }
+
+# colors for different MRS segments
+pcolors = ["violet", "mediumorchid", "purple",
+            "dodgerblue", "blue", "darkblue",
+            "chartreuse", "limegreen", "forestgreen",
+            "lightcoral", "orangered", "red"]
+# fmt: on
+
+
 # Return wavelength in microns rounded to 5 decimals
 def rydberg(n1, n2):
     R = 1.09677576e7
@@ -11,18 +33,48 @@ def rydberg(n1, n2):
     return np.round(lvalue, 7)
 
 
+def get_h_waves():
+    hnames = []
+    hwaves = []
+
+    # Pfund series
+    n1 = 5
+    for n2 in range(6, 7, 1):
+        hnames.append("HI " + str(n2) + "-" + str(n1))
+        hwaves.append(rydberg(n1, n2))
+    # Humphreys series
+    n1 = 6
+    for n2 in range(7, 11, 1):
+        hnames.append("HI " + str(n2) + "-" + str(n1))
+        hwaves.append(rydberg(n1, n2))
+    n1 = 7
+    for n2 in range(8, 18, 1):
+        hnames.append("HI " + str(n2) + "-" + str(n1))
+        hwaves.append(rydberg(n1, n2))
+    n1 = 8
+    for n2 in range(10, 13, 1):
+        hnames.append("HI " + str(n2) + "-" + str(n1))
+        hwaves.append(rydberg(n1, n2))
+    n1 = 9
+    for n2 in range(12, 15, 1):
+        hnames.append("HI " + str(n2) + "-" + str(n1))
+        hwaves.append(rydberg(n1, n2))
+
+    return (np.array(hnames), np.array(hwaves))
+
+
 def clean_crs(pflux, sigma_fac=3, width=11):
     medpflux = medfilt(pflux.astype(float), width)
 
     # determine the noise
-    devvals = pflux/medpflux
+    devvals = pflux / medpflux
     stddev = np.nanstd(devvals)
     # print(f"S/N = {np.nanmedian(pflux) / stddev}")
 
     # remove data that is far from the median
     bvals = np.absolute((pflux / medpflux) - 1) > sigma_fac * stddev
     pflux[bvals] = np.nan
-        
+
     return pflux
 
 

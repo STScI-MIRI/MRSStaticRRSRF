@@ -12,7 +12,7 @@ from astropy.modeling import models, fitting
 
 from jwst.residual_fringe.utils import fit_residual_fringes_1d
 
-from MRSStaticRRSRF.utils.helpers import rydberg
+from MRSStaticRRSRF.utils.helpers import get_h_waves
 
 
 def custest(x, axis=0):
@@ -66,36 +66,10 @@ def main():
     offval = 0.15
 
     # S/N regions
-    snreg = {"1short": [5.16, 5.32],
-             "1medium": [6.0, 6.1],
-             "1long": [7.0, 7.2]}
+    snreg = {"1short": [5.16, 5.32], "1medium": [6.0, 6.1], "1long": [7.0, 7.2]}
 
     # regions to mask for residual fringe corrections
-    hnames = []
-    hwaves = []
-    # Pfund series
-    n1 = 5
-    for n2 in range(6, 7, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    # Humphreys series
-    n1 = 6
-    for n2 in range(7, 11, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    n1 = 7
-    for n2 in range(8, 18, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    n1 = 8
-    for n2 in range(10, 13, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-    n1 = 9
-    for n2 in range(12, 15, 1):
-        hnames.append("HI " + str(n2) + "-" + str(n1))
-        hwaves.append(rydberg(n1, n2))
-
+    hnames, hwaves = get_h_waves()
     maskreg = []
     for hwave in hwaves:
         maskreg.append([hwave - 0.01, hwave + 0.01])
@@ -107,11 +81,12 @@ def main():
         files = glob.glob(f"{cname}/jw*_00001_*_dithsub_*x1d.fits")
     else:
         extstr = ""
-        files = (glob.glob(f"{cname}/jw*_00001_*short_?_x1d.fits")
-                 + glob.glob(f"{cname}/jw*_00001_*long_?_x1d.fits"))
+        files = glob.glob(f"{cname}/jw*_00001_*short_?_x1d.fits") + glob.glob(
+            f"{cname}/jw*_00001_*long_?_x1d.fits"
+        )
 
     # warning about masks in numpy that I've not managed to figure out yet
-    warnings.filterwarnings('ignore', category=UserWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
 
     for cfile in files:
 
@@ -122,12 +97,12 @@ def main():
         print(chn, band)
 
         # get the residual fringe reference correction
-        rfile = f"{ref_path}/mrs_residfringe_chn{chn}_{band}.fits"
+        rfile = f"{ref_path}/mrs_residfringe{extstr}_chn{chn}_{band}.fits"
         rtab = QTable.read(rfile)
         gvals = np.isfinite(rtab["wavelength"])
 
         # show the stage3 rf corrected spectrum for reference
-        pipefile = f"{cname}/{cname}_level3_ch{chn}-{band}_x1d.fits"
+        pipefile = f"{cname}/{cname}{extstr}_level3_ch{chn}-{band}_x1d.fits"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UnitsWarning)
             ptab = QTable.read(pipefile, hdu=1)
@@ -222,7 +197,9 @@ def main():
             # allspec[:, k] = corflux
 
         # make average corrected spectrum
-        specclipped = sigma_clipped_stats(allspec, axis=1, sigma=2.0) #, cenfunc=custest)
+        specclipped = sigma_clipped_stats(
+            allspec, axis=1, sigma=2.0
+        )  # , cenfunc=custest)
         avespec = specclipped[0]
         ax.plot(
             refwave,
@@ -232,7 +209,9 @@ def main():
             alpha=0.75,
         )
 
-        sdefringe = fit_residual_fringes_1d(avespec, refwave, channel=chn + 1)  #, ignore_regions=maskreg)
+        sdefringe = fit_residual_fringes_1d(
+            avespec, refwave, channel=chn + 1, ignore_regions=maskreg
+        )
         # sdefringe = avespec
         rfringecor = sdefringe / avespec
 
@@ -250,15 +229,20 @@ def main():
             # before residual fringe
             fitted_line = fit(line_init, refwave[gvals], avespec[gvals])
             tratio = avespec[gvals] / fitted_line(refwave[gvals])
-            sstats = sigma_clipped_stats(tratio)            
+            sstats = sigma_clipped_stats(tratio)
 
             # default pipeline
             gvals = (pipewave >= snreg[ckey][0]) & (pipewave <= snreg[ckey][1])
             fitted_line = fit(line_init, pipewave[gvals], pipeflux[gvals])
             tratio = pipeflux[gvals] / fitted_line(pipewave[gvals])
-            sstats_pipe = sigma_clipped_stats(tratio)   
+            sstats_pipe = sigma_clipped_stats(tratio)
 
-            print("w/ rfcor, static rfcor, default:", sstats_fin[0] / sstats_fin[2], sstats[0] / sstats[2], sstats_pipe[0] / sstats_pipe[2])
+            print(
+                "w/ rfcor, static rfcor, default:",
+                sstats_fin[0] / sstats_fin[2],
+                sstats[0] / sstats[2],
+                sstats_pipe[0] / sstats_pipe[2],
+            )
 
         # residual definging on the final average
         # sdefringe = rf1d(avespec, refwave, chn+1)
@@ -278,7 +262,7 @@ def main():
             alpha=0.75,
         )
 
-        ofile = f"{cname}/{cname}_static_rfcorr_ch{chn}-{band}_x1d.fits"
+        ofile = f"{cname}/{cname}{extstr}_static_rfcorr_ch{chn}-{band}_x1d.fits"
         otab = QTable()
         otab["WAVELENGTH"] = refwave
         otab["FLUX"] = avespec / np.square(refwave)
