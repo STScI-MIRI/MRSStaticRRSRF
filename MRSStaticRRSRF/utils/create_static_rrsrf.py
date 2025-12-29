@@ -52,15 +52,15 @@ if __name__ == "__main__":  # pragma: no cover
 
     # regions to mask for hot and A stars
     hnames, hwaves = get_h_waves()
+    mask_waves_a = hwaves[hwaves <= 6.5]
+
     # only include lines above 6.5 micron
     #  correction ok and G stars/asteroids not useable
     gvals = hwaves > 6.5
     mask_waves = hwaves[gvals]
     # add extra lines
-    mask_waves = np.concatenate((mask_waves, [12.57]))
+    # mask_waves = np.concatenate((mask_waves, [12.57]))
     mask_hwidth = 0.02
-
-    mask_waves_a = np.array([9.39])
 
     mask_waves_g = np.array([12.57, 14.18, 16.40])
     mask_hwidth_g = 0.04

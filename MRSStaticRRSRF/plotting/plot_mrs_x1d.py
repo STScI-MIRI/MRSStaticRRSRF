@@ -15,8 +15,8 @@ def main():
     parser.add_argument("starname", help="Name of the star and subdirectory with the MRS data")
     parser.add_argument("--dithsub", help="use the dither pair subtraction reduction", action="store_true")
     parser.add_argument(
-        "--pipe_rfcor",
-        help="plot the pipeline residual fringe correction",
+        "--pipe",
+        help="plot the pipeline stage 3 results w/ and w/o rf cor",
         action="store_true",
     )
     parser.add_argument("--showchan4", help="show channel 4 with other channels", action="store_true")
@@ -40,12 +40,8 @@ def main():
     else:
         extstr = ""
 
-    if args.pipe_rfcor:
-        filetag = f"{extstr}level3"
-        fluxkey = "RF_FLUX"
-    else:
-        filetag = f"{extstr}static_rfcorr"
-        fluxkey = "RF_FLUX"
+    filetag = f"{extstr}static_rfcorr"
+    fluxkey = "RF_FLUX"
 
     files = []
     for ch in range(4):
@@ -64,8 +60,9 @@ def main():
     # fmt: on
     for k, cfile in enumerate(files):
         print(cfile)
+        pipefile = cfile.replace("static_rfcorr", "level3")
         # get details of segment so the right color can be used
-        h = fits.getheader(cfile.replace("static_rfcorr", "level3"), hdu=1)
+        h = fits.getheader(pipefile, hdu=1)
         chn = int(h["CHANNEL"])
         band = h["BAND"].lower()
         if band == "short":
@@ -82,16 +79,23 @@ def main():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=u.UnitsWarning)
             itab = QTable.read(cfile, hdu=1)
+            pipetab = QTable.read(pipefile, hdu=1)
         # cflux = clean_crs(itab[fluxkey].value)
         cflux = itab[fluxkey].value
         cwave = itab["WAVELENGTH"].value
         cunc = itab["FLUX_ERROR"].value
 
+        pipeflux = pipetab[fluxkey].value
+        pipewave = pipetab["WAVELENGTH"].value
+
         tpflux = cflux * np.power(cwave, 2.0)
         ax.plot(cwave, tpflux, linestyle="-", color=pcol, alpha=0.8)
 
         if offval is None:
-            offval = np.nanmedian(tpflux) * 0.2
+            offval = np.nanmedian(tpflux) * 0.05
+
+        tpipeflux = pipeflux * np.power(pipewave, 2.0)
+        ax.plot(pipewave, tpipeflux - offval, linestyle="--", color=pcol, alpha=0.8)
 
         nwave, nflux, nunc, nnpts = rebin_constres(
             cwave * u.micron, cflux, cunc, wrange * u.micron, 2 * res
@@ -145,21 +149,12 @@ def main():
     plotflux = allwave * allwave * finspec
     ax.plot(allwave, plotflux.value + 2.0 * offval, "k-", alpha=0.75)
 
-    pname = f"{sname}/{sname}_constres_merged_mrs_pipe_rfcor.fits"
-    print(pname)
-    if os.path.isfile(pname) & (not args.pipe_rfcor):
-        ptab = QTable.read(pname)
-        tflux = ptab["flux"] * (ptab["wavelength"] ** 2)
-        ax.plot(ptab["wavelength"], tflux.value + 3.5 * offval, "c-", alpha=0.75)
-
     # save the merged spectrum
     outtab = QTable()
     outtab["wavelength"] = allwave
     outtab["flux"] = finspec * u.Jy
     outtab["unc"] = finunc * u.Jy
     oname = f"{sname}/{sname}{extstr}_constres_merged_mrs.fits"
-    if args.pipe_rfcor:
-        oname = oname.replace("_mrs", "_mrs_pipe_rfcor")
     outtab.write(oname, overwrite=True)
 
     # plot hydrogen transitions
@@ -188,8 +183,6 @@ def main():
     plt.tight_layout()
 
     fname = f"{sname}/{sname}{extstr}"
-    if args.pipe_rfcor:
-        fname = f"{fname}_pipe_rfcor"
     if args.png:
         fig.savefig(f"{fname}.png")
     elif args.pdf:

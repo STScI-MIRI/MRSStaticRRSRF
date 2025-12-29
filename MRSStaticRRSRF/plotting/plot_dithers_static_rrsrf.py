@@ -101,6 +101,12 @@ def main():
         rtab = QTable.read(rfile)
         gvals = np.isfinite(rtab["wavelength"])
 
+        if args.dithsub:
+            # get the delta aperture correction reference correction
+            apfile = f"{ref_path}/mrs_deltaapcor_dithsub_chn{chn}_{band}.fits"
+            aptab = QTable.read(apfile)
+            apgvals = np.isfinite(aptab["wavelength"])
+
         # show the stage3 rf corrected spectrum for reference
         pipefile = f"{cname}/{cname}{extstr}_level3_ch{chn}-{band}_x1d.fits"
         with warnings.catch_warnings():
@@ -118,6 +124,8 @@ def main():
         nwaves = np.sum(gvals)
         allspec = np.empty((nwaves, 4))
         allspecrf = np.empty((nwaves, 4))
+
+        dith_ave = np.zeros(4)
 
         for k, cdith in enumerate(["1", "2", "3", "4"]):
             # print(f"dither = {cdith}")
@@ -149,22 +157,9 @@ def main():
             #     alpha=0.5,
             # )
 
-            # determine if there is a shift
+            # get the RRSRF
             refwave = rtab["wavelength"][0:nwaves].data
             refspec = rtab[f"dither{cdith}"][0:nwaves].data
-
-            # ospec = Spectrum(spectral_axis=atab["WAVELENGTH"], flux=pflux)
-            # tspec = Spectrum(spectral_axis=refwave * u.micron, flux=refspec * u.Jy)
-            # corr, lag = correlation.template_correlate(ospec, tspec)
-
-            # avedelta = np.average(np.diff(refwave))
-            # aveshift = (lag[np.argmax(corr)] / const.c.to(u.km / u.s)) * np.average(refwave)
-            # if aveshift / avedelta > 10.0:
-            #     aveshift = 0.0
-
-            # if aveshift != 0.0:
-            #     refspec = np.interp(refwave, refwave + aveshift, refspec)
-            #     print(aveshift / avedelta)
 
             # ref correction
             ax.plot(
@@ -177,6 +172,11 @@ def main():
 
             # corrected spectra
             corflux = pflux / refspec
+
+            if args.dithsub:  # apply the delta aperture correction
+                dapcor = aptab[f"dither{cdith}"][0:nwaves].data
+                corflux *= dapcor
+
             allspec[:, k] = corflux
             ax.plot(
                 refwave,
@@ -185,6 +185,8 @@ def main():
                 linestyle="-",
                 alpha=0.5,
             )
+
+            dith_ave[k] = np.nanmedian(corflux)
 
             # residual definging on individual dithers
             # sdefringe = fit_residual_fringes_1d(corflux, refwave, channel=chn+1)
@@ -196,10 +198,22 @@ def main():
             # )
             # allspec[:, k] = corflux
 
+        dave = np.average(dith_ave)
+        for k in range(4):
+            allspec[:, k] *= dave / dith_ave[k]
+        #print(chn, band, dith_ave)
+
         # make average corrected spectrum
         specclipped = sigma_clipped_stats(
             allspec, axis=1, sigma=2.0
         )  # , cenfunc=custest)
+        sigfac = 4.0
+        stdfunc = "mad_std"
+        grow = None
+        specclipped = sigma_clipped_stats(
+            allspec, axis=1, sigma=sigfac, stdfunc=stdfunc, grow=grow
+        )  # , cenfunc=custest)
+
         avespec = specclipped[0]
         ax.plot(
             refwave,
@@ -282,6 +296,9 @@ def main():
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
     ax.set_ylabel(r"$\lambda^2 F(\nu)$")
+
+    if args.dithsub:
+        ax.set_title("DithSub")
 
     if args.chan:
         if args.chan == "1":
