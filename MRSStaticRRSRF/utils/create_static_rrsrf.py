@@ -8,7 +8,7 @@ from astropy.table import QTable
 from astropy.units import UnitsWarning
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.modeling import models, fitting
-from astropy.stats import sigma_clipped_stats
+from astropy.stats import sigma_clipped_stats, sigma_clip
 import astropy.units as u
 
 from MRSStaticRRSRF.utils.helpers import sinfo, get_h_waves
@@ -149,16 +149,16 @@ if __name__ == "__main__":  # pragma: no cover
                                 tmask_hwidth = mask_hwidth
                                 tmask_waves = mask_waves
                                 if stype == "A":
-                                    tmask_waves = np.concatenate([tmask_waves, mask_waves_a])
+                                    tmask_waves = np.concatenate(
+                                        [tmask_waves, mask_waves_a]
+                                    )
                             elif stype in ["G"]:
                                 tmask_hwidth = mask_hwidth_g
                                 tmask_waves = mask_waves_g
                             else:
                                 tmask_waves = []
                             for twave in tmask_waves:
-                                gvals = (
-                                    np.absolute(pwave.value - twave) <= tmask_hwidth
-                                )
+                                gvals = np.absolute(pwave.value - twave) <= tmask_hwidth
                                 pflux[gvals] = np.nan
                         else:
                             # fit a line - asteroids
@@ -171,15 +171,15 @@ if __name__ == "__main__":  # pragma: no cover
                         pflux /= mfluxseg
 
                         if useseg:
-                            ax.plot(
-                                pwave,
-                                pflux + (k * offval),
-                                linestyle="-",
-                                color=scolor,
-                                alpha=0.5,
-                                label=pname,
-                            )
-                            pname = None
+                            # ax.plot(
+                            #     pwave,
+                            #     pflux + (k * offval),
+                            #     linestyle="-",
+                            #     color=scolor,
+                            #     alpha=0.5,
+                            #     label=pname,
+                            # )
+                            # pname = None
 
                             if firsttime:
                                 allwave = np.full((max_waves, 4, 3), np.nan)
@@ -191,26 +191,78 @@ if __name__ == "__main__":  # pragma: no cover
                             allspec[0:n_waves, chn, n, k, m] = pflux
 
     # avefringes = np.nanmedian(allspec, axis=4)
-    fclipped = sigma_clipped_stats(allspec, axis=4, sigma=2.0)  # , cenfunc=custest)
+    sigfac = 4.0
+    stdfunc = "mad_std"
+    grow = None
+    fclipped = sigma_clipped_stats(allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow)  # , cenfunc=custest)
+    allspec_clipped = sigma_clip(allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow)
     avefringes = fclipped[0]
     for i in range(4):  # channels
         otab = QTable()
         for j in range(3):  # grating settings
-            z = i * 4 + j
-            otab["wavelength"] = allwave[:, i, j]
-            for k in range(4):  # dither settings
-                otab[f"dither{k+1}"] = avefringes[:, i, j, k]
-                ax.plot(
-                    allwave[:, i, j],
-                    avefringes[:, i, j, k] + (k + 0.4) * offval,
-                    linestyle="-",
-                    color="black",
-                    alpha=0.7,
+
+            useseg = True
+            if args.onlyseg:
+                if args.onlyseg != f"{i+1}{gnames[j]}":
+                    useseg = False
+
+            if useseg:
+                otab["wavelength"] = allwave[:, i, j]
+                for k in range(4):  # dither settings
+                    otab[f"dither{k+1}"] = avefringes[:, i, j, k]
+                    ax.plot(
+                        allwave[:, i, j],
+                        avefringes[:, i, j, k] + (k + 0.4) * offval,
+                        linestyle="-",
+                        color="black",
+                        alpha=0.7,
+                    )
+
+                otab.write(
+                    f"MRSStaticRRSRF/refs/mrs_residfringe{extstr}_chn{i+1}_{gnames[j]}.fits",
+                    overwrite=True,
                 )
-            otab.write(
-                f"MRSStaticRRSRF/refs/mrs_residfringe{extstr}_chn{i+1}_{gnames[j]}.fits",
-                overwrite=True,
-            )
+
+
+    # plot the cleaned spectra
+    for z, cname in enumerate(sinfo.keys()):
+        cfiles, mfile, stype, scolor = sinfo[cname]
+        pname = cname
+
+        for i in range(4):  # channels
+            otab = QTable()
+            for j in range(3):  # grating settings
+
+                useseg = True
+                if args.onlyseg:
+                    if args.onlyseg != f"{i+1}{gnames[j]}":
+                        useseg = False
+
+                if useseg:
+                    for k in range(4):  # dither settings
+                        # plot all the data with a very weak color
+                        ax.plot(
+                            allwave[:, i, j],
+                            allspec_clipped[:, i, j, k, z].data + k * offval,
+                            linestyle="-",
+                            color=scolor,
+                            alpha=0.2,
+                        )
+
+                        # plot the valid data with a stronger color
+                        mdata = allspec_clipped[:, i, j, k, z].filled(fill_value=np.nan)
+                        ax.plot(
+                            allwave[:, i, j],
+                            mdata + k * offval,
+                            linestyle="-",
+                            color=scolor,
+                            alpha=0.7,
+                            label=pname,
+                        )
+                        pname = None
+
+                        # plot the masked data
+
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
     ax.set_ylabel(r"$\lambda^2 F(\nu)$ / median + const")
