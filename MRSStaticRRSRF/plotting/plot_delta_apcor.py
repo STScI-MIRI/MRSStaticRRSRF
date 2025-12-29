@@ -50,12 +50,7 @@ if __name__ == "__main__":  # pragma: no cover
             pcol = pcolors[(chn - 1) * 3 + bnum]
 
             # get the residual fringe reference correction
-            # rfile = f"{ref_path}/mrs_residfringe_chn{chn}_{band}.fits"
-            # ortab = QTable.read(rfile)
-            # ogvals = np.isfinite(ortab["wavelength"])
-
-            # get the residual fringe reference correction
-            rfile = f"{ref_path}/mrs_residfringe{extstr}_chn{chn}_{band}.fits"
+            rfile = f"{ref_path}/mrs_deltaapcor_dithsub_chn{chn}_{band}.fits"
             rtab = QTable.read(rfile)
             gvals = np.isfinite(rtab["wavelength"])
 
@@ -66,15 +61,8 @@ if __name__ == "__main__":  # pragma: no cover
 
                 ax.plot(pwaves, pflux + k * offval, color=pcol, linestyle="-", alpha=0.7)
 
-                # opwaves = ortab["wavelength"][gvals]
-                # opflux = ortab[f"dither{cdith}"][gvals].data
-
-                # ax.plot(opwaves, opflux + k * offval, color=pcol, linestyle="--", alpha=0.7)
-
-                # ax.plot(pwaves, pflux / opflux + (k + 0.33) * offval, "k-", alpha=0.5)
-
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    ax.set_ylabel("RRSRF")
+    ax.set_ylabel(r"$\Delta$ apcor")
 
     if args.chan:
         if args.chan == 1:
@@ -94,13 +82,18 @@ if __name__ == "__main__":  # pragma: no cover
         ax.text(xval, 1.0 + (k + 0.33) * offval, f"Dither {cdith}", fontsize=0.7*fontsize, alpha=0.7,
                 bbox=dict(facecolor='white', alpha=0.8, linewidth=0.0))
 
-    ax.set_ylim(0.95, 1.0 + 4 * offval)
+    ax.set_ylim(0.95, 1.4 + 4 * offval)
+
+    for k in range(4):
+        ax.plot([4.5, 30.0], np.array([1.0, 1.0]) + k * offval, "k:", alpha=0.5)
 
     # ax.legend()
 
     fig.tight_layout()
 
-    save_str = f"figs/mrs_rrsrf_chn{args.chan}"
+    save_str = f"figs/mrs_delta_apcor"
+    if args.chan:
+        save_str = f"{save_str}_chn{args.chan}"
     if args.png:
         fig.savefig(f"{save_str}.png")
     elif args.pdf:

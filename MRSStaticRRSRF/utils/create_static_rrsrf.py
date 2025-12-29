@@ -30,7 +30,7 @@ if __name__ == "__main__":  # pragma: no cover
     with importlib_resources.as_file(ref) as cdata_path:
         ref_path = str(cdata_path)
 
-    fontsize = 14
+    fontsize = 20
 
     font = {"size": fontsize}
     plt.rc("font", **font)
@@ -139,7 +139,7 @@ if __name__ == "__main__":  # pragma: no cover
                                 if useseg:
                                     ax.plot(
                                         pwave,
-                                        mfluxseg + 4.5 * offval,
+                                        mfluxseg + 4.3 * offval,
                                         linestyle="--",
                                         color=scolor,
                                         alpha=0.5,
@@ -191,8 +191,12 @@ if __name__ == "__main__":  # pragma: no cover
     sigfac = 4.0
     stdfunc = "mad_std"
     grow = None
-    fclipped = sigma_clipped_stats(allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow)  # , cenfunc=custest)
-    allspec_clipped = sigma_clip(allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow)
+    fclipped = sigma_clipped_stats(
+        allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow
+    )  # , cenfunc=custest)
+    allspec_clipped = sigma_clip(
+        allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow
+    )
     avefringes = fclipped[0]
     for i in range(4):  # channels
         otab = QTable()
@@ -209,7 +213,7 @@ if __name__ == "__main__":  # pragma: no cover
                     otab[f"dither{k+1}"] = avefringes[:, i, j, k]
                     ax.plot(
                         allwave[:, i, j],
-                        avefringes[:, i, j, k] + (k + 0.4) * offval,
+                        avefringes[:, i, j, k] + (k + 0.2) * offval,
                         linestyle="-",
                         color="black",
                         alpha=0.7,
@@ -219,7 +223,6 @@ if __name__ == "__main__":  # pragma: no cover
                     f"MRSStaticRRSRF/refs/mrs_residfringe{extstr}_chn{i+1}_{gnames[j]}.fits",
                     overwrite=True,
                 )
-
 
     # plot the cleaned spectra
     for z, cname in enumerate(sinfo.keys()):
@@ -260,6 +263,17 @@ if __name__ == "__main__":  # pragma: no cover
 
                         # plot the masked data
 
+    xlim = ax.get_xlim()
+    xval = xlim[0] + 0.05 * (xlim[1] - xlim[0])
+    for k, cdith in enumerate(["1", "2", "3", "4"]):
+        ax.text(xval, 1.0 + (k + 0.5) * offval, f"Dither {cdith}", fontsize=0.7*fontsize, alpha=0.7,
+                bbox=dict(facecolor='white', alpha=0.8, linewidth=0.0))
+
+    if args.onlyseg:
+        xlim = ax.get_xlim()
+        x1 = xlim[0] + 0.05 * (xlim[1] - xlim[0])
+        ptext = f"{args.onlyseg[0]} {args.onlyseg[1:]}"
+        ax.text(x1, 1.8, ptext, fontsize=0.8 * fontsize)
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
     ax.set_ylabel(r"$\lambda^2 F(\nu)$ / median + const")
@@ -289,11 +303,15 @@ if __name__ == "__main__":  # pragma: no cover
         pstr = ""
     ax.set_ylabel(f"F{pstr}/F(model)")
 
-    ax.legend(ncol=2, fontsize=0.8 * fontsize)
+    ax.legend(loc="upper right", ncol=3, fontsize=0.7 * fontsize)
 
     fig.tight_layout()
 
-    save_str = f"figs/mrs_fringecor_dither_stack{extstr}_chn{channame}"
+    save_str = f"figs/mrs_fringecor_dither_stack{extstr}"
+    if args.onlyseg:
+        save_str = f"{save_str}_seg{args.onlyseg}"
+    else:
+        save_str = f"{save_str}chn{channame}"
     if args.png:
         fig.savefig(f"{save_str}.png")
     elif args.pdf:

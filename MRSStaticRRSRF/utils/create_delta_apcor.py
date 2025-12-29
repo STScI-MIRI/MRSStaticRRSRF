@@ -25,7 +25,7 @@ def main():
     fontsize = 14
     font = {"size": fontsize}
     plt.rc("font", **font)
-    plt.rc("lines", linewidth=1)
+    plt.rc("lines", linewidth=3)
     plt.rc("axes", linewidth=2)
     plt.rc("xtick.major", width=2)
     plt.rc("ytick.major", width=2)
@@ -116,12 +116,12 @@ def main():
             useseg = True  # just in case
 
             if useseg:
-                otab["wavelength"] = allwave[:, i, j]
+                pwave = allwave[:, i, j] 
+                otab["wavelength"] = pwave
 
                 pcol = pcolors[i * 3 + j]
 
                 for k in range(4):  # dither settings
-                    pwave = allwave[:, i, j] 
                     pratio = averatio[:, i, j, k]
                     ax.plot(
                         pwave,
@@ -137,7 +137,7 @@ def main():
                     gvals = pwave < 27.5
                     fitted_line = fit(line_init, pwave[gvals], pratio[gvals])
                     mratio = fitted_line(pwave)
-                    otab[f"dither{k+1}"] = mratio
+                    otab[f"dither{k+1}"] = 1.0 / mratio
 
                     ax.plot(
                         pwave,
