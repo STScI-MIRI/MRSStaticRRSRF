@@ -44,6 +44,9 @@ if __name__ == "__main__":  # pragma: no cover
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
     n_obs = len(sinfo)
+    max_waves = 1500
+    allwave = np.full((max_waves, 4, 3), np.nan)
+    allspec = np.full((max_waves, 4, 3, 4, n_obs), np.nan)
 
     gnames = ["short", "medium", "long"]
 
@@ -63,7 +66,6 @@ if __name__ == "__main__":  # pragma: no cover
     mask_hwidth_g = 0.04
 
     offval = 0.15
-    max_waves = 1500
     cres = 1000.0
     rbres = 10000.0  # model resolution
 
@@ -72,7 +74,6 @@ if __name__ == "__main__":  # pragma: no cover
     else:
         extstr = ""
 
-    firsttime = True
     for m, cname in enumerate(sinfo.keys()):
         pname = cname
         cfiles, mfile, stype, scolor = sinfo[cname]
@@ -161,7 +162,7 @@ if __name__ == "__main__":  # pragma: no cover
                                 gvals = np.absolute(pwave.value - twave) <= tmask_hwidth
                                 pflux[gvals] = np.nan
                         else:
-                            # fit a line - asteroids
+                            # fit a quadratic - asteroids
                             fit = fitting.LinearLSQFitter()
                             line_init = models.Polynomial1D(2)
                             gvals = pwave.value < 27.5
@@ -181,10 +182,6 @@ if __name__ == "__main__":  # pragma: no cover
                             # )
                             # pname = None
 
-                            if firsttime:
-                                allwave = np.full((max_waves, 4, 3), np.nan)
-                                allspec = np.full((max_waves, 4, 3, 4, n_obs), np.nan)
-                                firsttime = False
                             n_waves = len(atab["WAVELENGTH"])
                             if cdith == "1":
                                 allwave[0:n_waves, chn, n] = atab["WAVELENGTH"]
@@ -285,6 +282,12 @@ if __name__ == "__main__":  # pragma: no cover
         ax.set_xlim(xrange)
 
     ax.set_ylim(0.95, 1.05 + (5.5 * offval))
+    ax.set_xlabel(r"$\lambda$ [$\mu$m]")
+    if args.dithsub:
+        pstr = "(dithsub)"
+    else:
+        pstr = ""
+    ax.set_ylabel(f"F{pstr}/F(model)")
 
     ax.legend(ncol=2, fontsize=0.8 * fontsize)
 
