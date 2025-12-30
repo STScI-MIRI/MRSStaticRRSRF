@@ -57,6 +57,8 @@ def main():
     allunc = np.full((nwaves, n_orders), np.nan)
     offval = None
 
+    allmultsfacs = np.full(12, np.nan)
+
     # fmt: on
     for k, cfile in enumerate(files):
         print(cfile)
@@ -126,6 +128,8 @@ def main():
         pwave = cwave
         pflux = cflux
 
+        allmultsfacs[(chn - 1) * 3 + bnum] = multfac
+
         allspec[:, k] = nflux * multfac
         allunc[:, k] = nunc * multfac
 
@@ -144,7 +148,7 @@ def main():
     yrange = np.array(yrange)
     yrange[1] = yrange[1] + 2 * offval
 
-    finspec = np.nanmean(allspec, axis=1)
+    finspec = np.nanmean(allspec, axis=1) / np.nanmean(allmultsfacs)
     finunc = np.nanmean(allunc, axis=1)
     plotflux = allwave * allwave * finspec
     ax.plot(allwave, plotflux.value + 2.0 * offval, "k-", alpha=0.75)

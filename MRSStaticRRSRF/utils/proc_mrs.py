@@ -113,6 +113,7 @@ def main():
     print(sstring)
     lvl1b_files = sorted(glob.glob(sstring))
     print("Found " + str(len(lvl1b_files)) + " science input files to process")
+    print(lvl1b_files)
 
     # Run the pipeline on these input files by a simple loop over our pipeline function
     if dodet1:

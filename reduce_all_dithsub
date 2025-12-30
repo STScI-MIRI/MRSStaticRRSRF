@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 
-for CSTAR in 16CygB Athalia delUMi HD163466_c1 HD2811_c1 HD2811_c2 HD2811_c3 HD2811_c4 HR5467 Jena muCol
+# for CSTAR in 16CygB Athalia delUMi HD163466_c1 HD2811_c1 HD2811_c2 HD2811_c3 HD2811_c4 HR5467 Jena muCol
+for CSTAR in HR6538 HD37962 HD167060
 do
     nice -n 19 mrs_proc --dithsub --det1skip $CSTAR >& logs/$CSTAR"_dithsub.log" &
 done
