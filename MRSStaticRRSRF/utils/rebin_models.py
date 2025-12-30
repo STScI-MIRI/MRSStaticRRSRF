@@ -10,6 +10,9 @@ from MRSStaticRRSRF.utils.helpers import rebin_constres
 
 if __name__ == "__main__":  # pragma: no cover
     mfiles = [
+        "hd167060_mod_006.fits",
+        "hd37962_mod_009.fits",
+        "hd159222_mod_007.fits",
         "16cygb_mod_005.fits",
         "delumi_mod_005.fits",
         "mucol_mod_006.fits",

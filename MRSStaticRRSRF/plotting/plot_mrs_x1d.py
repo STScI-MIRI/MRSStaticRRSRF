@@ -165,7 +165,6 @@ def main():
     y1 = yrange[0] + 0.05 * (yrange[1] - yrange[0])
     hnames, hwaves = get_h_waves()
 
-
     for cname, cwave in zip(hnames, hwaves):
         ax.text(
             cwave,
