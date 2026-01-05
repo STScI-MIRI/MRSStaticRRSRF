@@ -113,7 +113,7 @@ if __name__ == "__main__":  # pragma: no cover
 
                         useseg = True
                         if mfile is None:
-                            if min(pwave.value) < 7.0:
+                            if min(pwave.value) < 7.0:  # set to 7 to remove all of channel 1
                                 useseg = False
                         else:
                             if max(pwave.value) > 20.0:
