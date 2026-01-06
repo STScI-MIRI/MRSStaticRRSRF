@@ -47,6 +47,7 @@ if __name__ == "__main__":  # pragma: no cover
     max_waves = 1500
     allwave = np.full((max_waves, 4, 3), np.nan)
     allspec = np.full((max_waves, 4, 3, 4, n_obs), np.nan)
+    allspec_orig = np.full((max_waves, 4, 3, 4, n_obs), np.nan)
 
     gnames = ["short", "medium", "long"]
 
@@ -67,6 +68,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     offval = 0.15
     cres = 1000.0
+    cres = 900.0
     rbres = 10000.0  # model resolution
 
     if args.dithsub:
@@ -129,60 +131,54 @@ if __name__ == "__main__":  # pragma: no cover
                                 useseg = False
 
                         # get the convolved model for this segment
-                        if mfile is not None:
-                            if cdith == "1":
-                                fwhm_pix = rbres / cres
-                                g = Gaussian1DKernel(stddev=fwhm_pix / 2.355)
-                                nflux = convolve(mflux, g)
-                                mfluxseg = np.interp(pwave, mwave, nflux)
-                                mfluxseg /= np.nanmedian(mfluxseg)
-                                if useseg:
-                                    ax.plot(
-                                        pwave,
-                                        mfluxseg + 4.3 * offval,
-                                        linestyle="--",
-                                        color=scolor,
-                                        alpha=0.5,
-                                    )
-
-                            # remove data where stellar lines are not well corrected
-                            if stype in ["hot", "A"]:
-                                tmask_hwidth = mask_hwidth
-                                tmask_waves = mask_waves
-                                if stype == "A":
-                                    tmask_waves = np.concatenate(
-                                        [tmask_waves, mask_waves_a]
-                                    )
-                            elif stype in ["G"]:
-                                tmask_hwidth = mask_hwidth_g
-                                tmask_waves = mask_waves_g
-                            else:
-                                tmask_waves = []
-                            for twave in tmask_waves:
-                                gvals = np.absolute(pwave.value - twave) <= tmask_hwidth
-                                pflux[gvals] = np.nan
-                        else:
-                            # fit a quadratic - asteroids
-                            fit = fitting.LinearLSQFitter()
-                            line_init = models.Polynomial1D(2)
-                            gvals = pwave.value < 27.5
-                            fitted_line = fit(line_init, pwave[gvals], pflux[gvals])
-                            mfluxseg = fitted_line(pwave)
-
-                        pflux /= mfluxseg
-
                         if useseg:
-                            # ax.plot(
-                            #     pwave,
-                            #     pflux + (k * offval),
-                            #     linestyle="-",
-                            #     color=scolor,
-                            #     alpha=0.5,
-                            #     label=pname,
-                            # )
-                            # pname = None
-
                             n_waves = len(atab["WAVELENGTH"])
+                            allspec_orig[0:n_waves, chn, n, k, m] = pflux
+
+                            if mfile is not None:
+                                if cdith == "1":
+                                    fwhm_pix = rbres / cres
+                                    g = Gaussian1DKernel(stddev=fwhm_pix / 2.355)
+                                    nflux = convolve(mflux, g)
+                                    mfluxseg = np.interp(pwave, mwave, nflux)
+                                    mfluxseg /= np.nanmedian(mfluxseg)
+                                    if useseg:
+                                        ax.plot(
+                                            pwave,
+                                            mfluxseg + 4.3 * offval,
+                                            linestyle="--",
+                                            color=scolor,
+                                            alpha=0.5,
+                                        )
+
+                                # remove data where stellar lines are not well corrected
+                                if stype in ["hot", "A"]:
+                                    tmask_hwidth = mask_hwidth
+                                    tmask_waves = mask_waves
+                                    if stype == "A":
+                                        tmask_waves = np.concatenate(
+                                            [tmask_waves, mask_waves_a]
+                                        )
+                                elif stype in ["G"]:
+                                    tmask_hwidth = mask_hwidth_g
+                                    tmask_waves = mask_waves_g
+                                else:
+                                    tmask_waves = []
+                                for twave in tmask_waves:
+                                    gvals = np.absolute(pwave.value - twave) <= tmask_hwidth
+                                    pflux[gvals] = np.nan
+                            else:
+                                # fit a quadratic - asteroids
+                                fit = fitting.LinearLSQFitter()
+                                line_init = models.Polynomial1D(2)
+                                gvals = pwave.value < 27.5
+                                fitted_line = fit(line_init, pwave[gvals], pflux[gvals])
+                                mfluxseg = fitted_line(pwave)
+
+                            pflux /= mfluxseg
+
+                            allspec_orig[0:n_waves, chn, n, k, m] /= mfluxseg
+
                             if cdith == "1":
                                 allwave[0:n_waves, chn, n] = atab["WAVELENGTH"]
                             allspec[0:n_waves, chn, n, k, m] = pflux
@@ -244,6 +240,7 @@ if __name__ == "__main__":  # pragma: no cover
                         ax.plot(
                             allwave[:, i, j],
                             allspec_clipped[:, i, j, k, z].data + k * offval,
+                            # allspec_orig[:, i, j, k, z] + k * offval,
                             linestyle="-",
                             color=scolor,
                             alpha=0.2,

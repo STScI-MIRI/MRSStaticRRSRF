@@ -13,6 +13,7 @@ from MRSStaticRRSRF.utils.helpers import pcolors
 if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument("--chan", help="plot only one channel", choices=[1, 2, 3, 4], type=int)
+    parser.add_argument("--dithsub", help="use dithsub pairs", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -37,7 +38,10 @@ if __name__ == "__main__":  # pragma: no cover
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
 
-    extstr = "_dithsub"
+    if args.dithsub:
+        extstr = "_dithsub"
+    else:
+        extstr = ""
     offval = 0.07
     if args.chan:
         channels = [args.chan]
