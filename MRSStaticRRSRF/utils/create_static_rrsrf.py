@@ -67,12 +67,29 @@ if __name__ == "__main__":  # pragma: no cover
     mask_hwidth_g = 0.04
 
     offval = 0.15
-    cres = 1000.0
-    cres = 900.0
-    rbres = 10000.0  # model resolution
+    # MRS spectral resolution by channel/grating from JDox
+    mrs_specres = {
+        "1short": (3320 + 3710) / 2.0,
+        "1medium": (3190 + 3750) / 2.0,
+        "1long": (3100 + 3610) / 2.0,
+        "2short": (2990 + 3110) / 2.0,
+        "2medium": (2750 + 3170) / 2.0,
+        "2long": (2860 + 3300) / 2.0,
+        "3short": (2860 + 3300) / 2.0,
+        "3medium": (1790 + 2640) / 2.0,
+        "3long": (1980 + 2790) / 2.0,
+        "4short": (1460 + 1930) / 2.0,
+        "4medium": (1680 + 1770) / 2.0,
+        "4long": (1630 + 1330) / 2.0,
+    }
+    rbres = 30000.0  # model resolution
 
     if args.dithsub:
         extstr = "_dithsub"
+        # remove the last 3 asteroids, poor for dithsub
+        del sinfo["Polana"]
+        del sinfo["Henrietta_1"]
+        del sinfo["Henrietta_2"]
     else:
         extstr = ""
 
@@ -115,7 +132,9 @@ if __name__ == "__main__":  # pragma: no cover
 
                         useseg = True
                         if mfile is None:
-                            if min(pwave.value) < 7.0:  # set to 7 to remove all of channel 1
+                            if (
+                                min(pwave.value) < 7.0
+                            ):  # set to 7 to remove all of channel 1
                                 useseg = False
                         else:
                             if max(pwave.value) > 20.0:
@@ -137,6 +156,8 @@ if __name__ == "__main__":  # pragma: no cover
 
                             if mfile is not None:
                                 if cdith == "1":
+                                    cres = mrs_specres[f"{chn+1}{gnames[n]}"]
+
                                     fwhm_pix = rbres / cres
                                     g = Gaussian1DKernel(stddev=fwhm_pix / 2.355)
                                     nflux = convolve(mflux, g)
@@ -165,7 +186,9 @@ if __name__ == "__main__":  # pragma: no cover
                                 else:
                                     tmask_waves = []
                                 for twave in tmask_waves:
-                                    gvals = np.absolute(pwave.value - twave) <= tmask_hwidth
+                                    gvals = (
+                                        np.absolute(pwave.value - twave) <= tmask_hwidth
+                                    )
                                     pflux[gvals] = np.nan
                             else:
                                 # fit a quadratic - asteroids
@@ -263,8 +286,14 @@ if __name__ == "__main__":  # pragma: no cover
     xlim = ax.get_xlim()
     xval = xlim[0] + 0.05 * (xlim[1] - xlim[0])
     for k, cdith in enumerate(["1", "2", "3", "4"]):
-        ax.text(xval, 1.0 + (k + 0.5) * offval, f"Dither {cdith}", fontsize=0.7*fontsize, alpha=0.7,
-                bbox=dict(facecolor='white', alpha=0.8, linewidth=0.0))
+        ax.text(
+            xval,
+            1.0 + (k + 0.5) * offval,
+            f"Dither {cdith}",
+            fontsize=0.7 * fontsize,
+            alpha=0.7,
+            bbox=dict(facecolor="white", alpha=0.8, linewidth=0.0),
+        )
 
     if args.onlyseg:
         xlim = ax.get_xlim()
