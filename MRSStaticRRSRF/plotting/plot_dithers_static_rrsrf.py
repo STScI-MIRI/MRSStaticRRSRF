@@ -276,7 +276,7 @@ def main():
             alpha=0.75,
         )
 
-        ofile = f"{cname}/{cname}_{extstr}static_rfcorr_ch{chn}-{band}_x1d.fits"
+        ofile = f"{cname}/{cname}{extstr}_static_rfcorr_ch{chn}-{band}_x1d.fits"
         otab = QTable()
         otab["WAVELENGTH"] = refwave
         otab["FLUX"] = avespec / np.square(refwave)

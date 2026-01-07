@@ -63,7 +63,7 @@ if __name__ == "__main__":  # pragma: no cover
     # mask_waves = np.concatenate((mask_waves, [12.57]))
     mask_hwidth = 0.02
 
-    mask_waves_g = np.array([12.57, 14.18, 16.40])
+    mask_waves_g = np.array([12.37, 12.57, 14.18, 16.40])
     mask_hwidth_g = 0.04
 
     offval = 0.15
