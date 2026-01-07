@@ -276,7 +276,7 @@ def main():
             alpha=0.75,
         )
 
-        ofile = f"{cname}/{cname}{extstr}_static_rfcorr_ch{chn}-{band}_x1d.fits"
+        ofile = f"{cname}/{cname}_{extstr}static_rfcorr_ch{chn}-{band}_x1d.fits"
         otab = QTable()
         otab["WAVELENGTH"] = refwave
         otab["FLUX"] = avespec / np.square(refwave)
@@ -320,7 +320,7 @@ def main():
 
     fig.tight_layout()
 
-    save_str = f"{args.starname}/{args.starname}_dither_divide_{extstr}_chn{channame}"
+    save_str = f"{args.starname}/{args.starname}_dither_divide{extstr}_chn{channame}"
     if args.png:
         fig.savefig(f"{save_str}.png")
     elif args.pdf:

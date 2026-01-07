@@ -47,7 +47,7 @@ def main():
     plt.rc("axes", linewidth=2)
     plt.rc("xtick.major", width=2)
     plt.rc("ytick.major", width=2)
-    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 8))
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 6))
 
     sname = args.starname
     extstr = ""
@@ -74,10 +74,8 @@ def main():
 
     # fmt: on
     for k, cfile in enumerate(files):
-        print(cfile)
         cfile_dithsub = cfile.replace("_static", "_dithsub_static")
-        pipefile = cfile.replace("_static_rfcorr", "_dithsub_level3")
-        print(pipefile)
+        pipefile = cfile.replace("_static_rfcorr", "_level3")
         # get details of segment so the right color can be used
         h = fits.getheader(pipefile, hdu=1)
         chn = int(h["CHANNEL"])
@@ -229,7 +227,7 @@ def main():
         4.0, lab_xvals[0], "RRSRF", fontsize=0.6 * fontsize, rotation=45.0, alpha=0.6
     )
     ax.text(
-        4.0, lab_xvals[2], "DithSub Pipe", fontsize=0.6 * fontsize, rotation=45.0, alpha=0.6
+        4.0, lab_xvals[2], "Pipeline", fontsize=0.6 * fontsize, rotation=45.0, alpha=0.6
     )
 
     # plot hydrogen transitions
@@ -252,7 +250,7 @@ def main():
     ax.set_ylim(yrange)
     ax.set_title(sname)
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    ax.set_ylabel(r"$\lambda^2 F(\nu)$ [RJ units]")
+    ax.set_ylabel(r"$\lambda^2 F(\nu)$ [$\mu$m$^2$ Jy = RJ units]")
 
     plt.tight_layout()
 

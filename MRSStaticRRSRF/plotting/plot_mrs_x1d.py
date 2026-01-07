@@ -179,13 +179,16 @@ def main():
 
     ax.set_xlim(4.5, 20.0)
     ax.set_ylim(yrange)
-    ax.set_title(sname)
+    ttitle = sname
+    if args.dithsub:
+        ttitle = f"{ttitle} (Dithsub)"
+    ax.set_title(ttitle)
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    ax.set_ylabel(r"$\lambda^2 F(\nu)$ [RJ units]")
+    ax.set_ylabel(r"$\lambda^2 F(\nu)$ [$\mu$m$^2$ Jy = RJ units]")
 
     plt.tight_layout()
 
-    fname = f"{sname}/{sname}{extstr}"
+    fname = f"{sname}/{sname}_{extstr}spec"
     if args.png:
         fig.savefig(f"{fname}.png")
     elif args.pdf:

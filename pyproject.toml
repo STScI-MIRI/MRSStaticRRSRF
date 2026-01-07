@@ -24,6 +24,7 @@ dynamic = ["version"]
 mrs_proc = "MRSStaticRRSRF.utils.proc_mrs:main"
 mrs_srfcor = "MRSStaticRRSRF.plotting.plot_dithers_static_rrsrf:main"
 mrs_plot = "MRSStaticRRSRF.plotting.plot_mrs_x1d:main"
+mrs_plot_3ways = "MRSStaticRRSRF.plotting.plot_mrs_x1d_3ways:main"
 
 [project.optional-dependencies]
 test = [
