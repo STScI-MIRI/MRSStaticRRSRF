@@ -1,4 +1,3 @@
-import os.path
 import argparse
 import warnings
 import numpy as np
@@ -7,7 +6,7 @@ from astropy.table import QTable
 import astropy.units as u
 from astropy.io import fits
 
-from MRSStaticRRSRF.utils.helpers import pcolors, rebin_constres, get_h_waves
+from MRSStaticRRSRF.utils.helpers import pcolors, get_h_waves
 
 
 def get_overlap_cor(cwave, cflux, pwave, pflux, multfac):
