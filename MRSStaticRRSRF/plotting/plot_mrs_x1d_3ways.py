@@ -33,6 +33,9 @@ def main():
         "starname", help="Name of the star and subdirectory with the MRS data"
     )
     parser.add_argument(
+        "--dithsub", help="use the pair dither subtraction data", action="store_true"
+    )
+    parser.add_argument(
         "--showchan4", help="show channel 4 with other channels", action="store_true"
     )
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
@@ -176,17 +179,18 @@ def main():
 
         # dithsub
         tdsflux = dscflux * np.power(dscwave, 2.0)
-        ax.plot(
-            dscwave, tdsflux * dsmultfac + offval, linestyle="-", color=pcol, alpha=0.8
-        )
-        tdsfluxrf = dscfluxrf * np.power(dscwave, 2.0)
-        ax.plot(
-            dscwave,
-            tdsfluxrf * dsmultfacrf + (1.0 + 0.3) * offval,
-            linestyle="-",
-            color=pcol,
-            alpha=0.8,
-        )
+        if args.dithsub:
+            ax.plot(
+                dscwave, tdsflux * dsmultfac + offval, linestyle="-", color=pcol, alpha=0.8
+            )
+            tdsfluxrf = dscfluxrf * np.power(dscwave, 2.0)
+            ax.plot(
+                dscwave,
+                tdsfluxrf * dsmultfacrf + (1.0 + 0.3) * offval,
+                linestyle="-",
+                color=pcol,
+                alpha=0.8,
+            )
 
         # pipe
         tpipeflux = pcflux * np.power(pcwave, 2.0)
@@ -214,14 +218,15 @@ def main():
     yrange = np.array(yrange)
     # yrange[1] = yrange[1] + 2 * offval
 
-    ax.text(
-        4.0,
-        lab_xvals[1],
-        "Dithsub RRSRF",
-        fontsize=0.6 * fontsize,
-        rotation=45.0,
-        alpha=0.6,
-    )
+    if args.dithsub:
+        ax.text(
+            4.0,
+            lab_xvals[1],
+            "Dithsub RRSRF",
+            fontsize=0.6 * fontsize,
+            rotation=45.0,
+            alpha=0.6,
+        )
     ax.text(
         4.0, lab_xvals[0], "RRSRF", fontsize=0.6 * fontsize, rotation=45.0, alpha=0.6
     )

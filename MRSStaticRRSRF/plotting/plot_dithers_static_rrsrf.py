@@ -66,7 +66,7 @@ def main():
     offval = 0.15
 
     # S/N regions
-    snreg = {"1short": [5.16, 5.32], "1medium": [6.0, 6.1], "1long": [7.0, 7.2]}
+    snreg = {"1short": [5.28, 5.35], "1medium": [6.0, 6.1], "1long": [7.1, 7.25]}
 
     # regions to mask for residual fringe corrections
     hnames, hwaves = get_h_waves()
@@ -295,7 +295,7 @@ def main():
         )
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    ax.set_ylabel(r"$\lambda^2 F(\nu)$")
+    ax.set_ylabel(r"$\lambda^2 F(\nu)$ / median($\lambda^2 F(\nu)$)")
 
     if args.dithsub:
         ax.set_title("DithSub")
@@ -315,6 +315,7 @@ def main():
         channame = "all"
 
     ax.set_ylim(0.95, 1.15 + (5 * offval))
+    ax.set_title(args.starname)
 
     # ax.legend()
 
