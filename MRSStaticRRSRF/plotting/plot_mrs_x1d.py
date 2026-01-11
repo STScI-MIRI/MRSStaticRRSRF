@@ -27,6 +27,8 @@ def main():
     parser.add_argument(
         "--showchan4", help="show channel 4 with other channels", action="store_true"
     )
+    parser.add_argument("--notrfcor", help="Use the FLUX, not the RF_FLUX", action="store_true")
+    parser.add_argument("--notrj", help="plot F(nu), not lambda^2 F(nu)", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -48,7 +50,11 @@ def main():
         extstr = ""
 
     filetag = f"{extstr}static_rfcorr"
-    fluxkey = "RF_FLUX"
+
+    if args.notrfcor:
+        fluxkey = "FLUX"
+    else:
+        fluxkey = "RF_FLUX"
 
     files = []
     for ch in range(4):
@@ -100,13 +106,25 @@ def main():
         pipewave = pipetab["WAVELENGTH"].value
         pipeunc = pipetab["FLUX_ERROR"].value
 
-        tpflux = cflux * np.power(cwave, 2.0)
+        if args.notrj:
+            tpflux = cflux
+        else:
+            tpflux = cflux * np.power(cwave, 2.0)
+        print(tpflux)
         ax.plot(cwave, tpflux, linestyle="-", color=pcol, alpha=0.8)
 
         if offval is None:
-            offval = np.nanmedian(tpflux) * 0.05
+            if args.notrj:
+                oval = 0.2
+            else:
+                oval = 0.05
+            offval = np.nanmedian(tpflux) * oval
 
-        tpipeflux = pipeflux * np.power(pipewave, 2.0)
+        if args.notrj:
+            tpipeflux = pipeflux
+        else:
+            tpipeflux = pipeflux * np.power(pipewave, 2.0)
+        print(tpipeflux)
         ax.plot(pipewave, tpipeflux - offval, linestyle="--", color=pcol, alpha=0.8)
 
         nwave, nflux, nunc, nnpts = rebin_constres(
@@ -150,9 +168,13 @@ def main():
         allunc[:, k] = nunc * multfac
         allunc_pipe[:, k] = nunc_pipe * multfac
 
+        if args.notrj:
+            tflux = allspec[:, k]
+        else:
+            tflux = (nwave * nwave * allspec[:, k]).value
         ax.plot(
             nwave,
-            (nwave * nwave * allspec[:, k]).value + offval,
+            tflux + offval,
             linestyle="-",
             color=pcol,
             alpha=0.8,
@@ -174,7 +196,11 @@ def main():
     finunc = np.nanmean(allunc, axis=1)
     finunc_pipe = np.nanmean(allunc_pipe, axis=1)
     plotflux = allwave * allwave * finspec
-    ax.plot(allwave, plotflux.value + 2.0 * offval, "k-", alpha=0.75)
+    if args.notrj:
+        plotflux = finspec
+    else:
+        plotflux = (allwave * allwave * finspec).value
+    ax.plot(allwave, plotflux + 2.0 * offval, "k-", alpha=0.75)
 
     # save the merged spectrum
     outtab = QTable()
@@ -202,7 +228,7 @@ def main():
             alpha=0.7,
         )
 
-    ax.set_xlim(4.5, 20.0)
+    # ax.set_xlim(4.5, 20.0)
     ax.set_ylim(yrange)
     ttitle = sname
     if args.dithsub:

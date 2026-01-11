@@ -32,6 +32,7 @@ def main():
     parser.add_argument(
         "starname", help="Name of the star and subdirectory with the MRS data"
     )
+    parser.add_argument("--notrj", help="plot F(nu), not lambda^2 F(nu)", action="store_true")
     parser.add_argument(
         "--dithsub", help="use the pair dither subtraction data", action="store_true"
     )
@@ -96,7 +97,8 @@ def main():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=u.UnitsWarning)
             itab = QTable.read(cfile, hdu=1)
-            itab_dithsub = QTable.read(cfile_dithsub, hdu=1)
+            if args.dithsub:
+                itab_dithsub = QTable.read(cfile_dithsub, hdu=1)
             pipetab = QTable.read(pipefile, hdu=1)
         # cflux = clean_crs(itab[fluxkey].value)
         cflux = itab[fluxkey].value
@@ -104,9 +106,10 @@ def main():
         cwave = itab["WAVELENGTH"].value
         cunc = itab["FLUX_ERROR"].value
 
-        dscflux = itab_dithsub[fluxkey].value
-        dscfluxrf = itab_dithsub["RF_FLUX"].value
-        dscwave = itab_dithsub["WAVELENGTH"].value
+        if args.dithsub:
+            dscflux = itab_dithsub[fluxkey].value
+            dscfluxrf = itab_dithsub["RF_FLUX"].value
+            dscwave = itab_dithsub["WAVELENGTH"].value
 
         pcflux = pipetab[fluxkey].value
         pcfluxrf = pipetab["RF_FLUX"].value
@@ -126,10 +129,11 @@ def main():
             pwaverf = cwave
             pfluxrf = cfluxrf
 
-            dspwave = dscwave
-            dspflux = dscflux
-            dspwaverf = dscwave
-            dspfluxrf = dscfluxrf
+            if args.dithsub:
+                dspwave = dscwave
+                dspflux = dscflux
+                dspwaverf = dscwave
+                dspfluxrf = dscfluxrf
 
             ppwave = pcwave
             ppflux = pcflux
@@ -141,12 +145,13 @@ def main():
                 cwave, cfluxrf, pwaverf, pfluxrf, multfacrf
             )
 
-            dsmultfac, dspwave, dspflux = get_overlap_cor(
-                dscwave, dscflux, dspwave, dspflux, dsmultfac
-            )
-            dsmultfacrf, dspwaverf, dspfluxrf = get_overlap_cor(
-                dscwave, dscfluxrf, dspwaverf, dspfluxrf, dsmultfacrf
-            )
+            if args.dithsub:
+                dsmultfac, dspwave, dspflux = get_overlap_cor(
+                    dscwave, dscflux, dspwave, dspflux, dsmultfac
+                )
+                dsmultfacrf, dspwaverf, dspfluxrf = get_overlap_cor(
+                    dscwave, dscfluxrf, dspwaverf, dspfluxrf, dsmultfacrf
+                )
 
             pmultfac, ppwave, ppflux = get_overlap_cor(
                 pcwave, pcflux, ppwave, ppflux, pmultfac
@@ -162,13 +167,23 @@ def main():
         # pmultfac = 1.0
         # pmultfacrf = 1.0
 
-        tpflux = cflux * np.power(cwave, 2.0)
+        if args.notrj:
+            tpflux = cflux
+        else:
+            tpflux = cflux * np.power(cwave, 2.0)
         ax.plot(cwave, tpflux * multfac, linestyle="-", color=pcol, alpha=0.8)
 
         if offval is None:
-            offval = np.nanmedian(tpflux) * 0.1
+            if args.notrj:
+                ofac = 0.7
+            else:
+                ofac = 0.1
+            offval = np.nanmedian(tpflux) * ofac
 
-        tpfluxrf = cfluxrf * np.power(cwave, 2.0)
+        if args.notrj:
+            tpfluxrf = cfluxrf
+        else:
+            tpfluxrf = cfluxrf * np.power(cwave, 2.0)
         ax.plot(
             cwave,
             tpfluxrf * multfacrf + 0.3 * offval,
@@ -178,8 +193,8 @@ def main():
         )
 
         # dithsub
-        tdsflux = dscflux * np.power(dscwave, 2.0)
         if args.dithsub:
+            tdsflux = dscflux * np.power(dscwave, 2.0)
             ax.plot(
                 dscwave, tdsflux * dsmultfac + offval, linestyle="-", color=pcol, alpha=0.8
             )
@@ -193,12 +208,18 @@ def main():
             )
 
         # pipe
-        tpipeflux = pcflux * np.power(pcwave, 2.0)
+        if args.notrj:
+            tpipeflux = pcflux
+        else:
+            tpipeflux = pcflux * np.power(pcwave, 2.0)
         ax.plot(
             pcwave, tpipeflux * pmultfac - offval, linestyle="-", color=pcol, alpha=0.8
         )
 
-        tpipefluxrf = pcfluxrf * np.power(pcwave, 2.0)
+        if args.notrj:
+            tpipefluxrf = pcfluxrf
+        else:
+            tpipefluxrf = pcfluxrf * np.power(pcwave, 2.0)
         ax.plot(
             pcwave,
             tpipefluxrf * pmultfacrf - (1 - 0.3) * offval,
@@ -209,7 +230,8 @@ def main():
 
         if (chn == 1) & (band == "short"):
             lab_xvals[0] = np.nanmedian(tpflux)
-            lab_xvals[1] = np.nanmedian(tdsflux + offval)
+            if args.dithsub:
+                lab_xvals[1] = np.nanmedian(tdsflux + offval)
             lab_xvals[2] = np.nanmedian(tpipeflux - offval)
 
         if chn < 4:
@@ -250,7 +272,7 @@ def main():
             alpha=0.5,
         )
 
-    ax.set_xlim(3.8, 18.3)
+    # ax.set_xlim(3.8, 18.3)
     ax.set_ylim(yrange)
     ax.set_title(sname)
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")

@@ -28,6 +28,16 @@ def custest(x, axis=0):
             outx[k] = np.nan
     return outx
 
+def norm_fit(pwave, pflux):
+    pflux = np.array(pflux)
+    # fit a quadratic - asteroids
+    fit = fitting.LinearLSQFitter()
+    line_init = models.Polynomial1D(2)
+    gvals = pwave < 27.5
+    fitted_line = fit(line_init, pwave[gvals], pflux[gvals])
+    mfluxseg = fitted_line(pwave)
+    return pflux / mfluxseg
+
 
 def main():
 
@@ -38,6 +48,9 @@ def main():
     )
     parser.add_argument(
         "--dithsub", help="use the pair dither subtraction data", action="store_true"
+    )
+    parser.add_argument(
+        "--asteroid", help="plot data/quad fit instead of RJ units", action="store_true"
     )
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
@@ -94,7 +107,10 @@ def main():
         chn = int(h["CHANNEL"])
         band = h["BAND"].lower()
 
-        print(chn, band)
+        showseg = True
+        if args.chan:
+            if int(args.chan) != chn:
+                showseg = False
 
         # get the residual fringe reference correction
         rfile = f"{ref_path}/mrs_residfringe{extstr}_chn{chn}_{band}.fits"
@@ -113,13 +129,17 @@ def main():
             warnings.simplefilter("ignore", category=UnitsWarning)
             ptab = QTable.read(pipefile, hdu=1)
         pipewave = np.array(ptab["WAVELENGTH"].data)
-        pipeflux = ptab["RF_FLUX"].data * np.square(pipewave)
-        ax.plot(
-            pipewave,
-            pipeflux / np.nanmedian(pipeflux) + (4.33 * offval),
-            "g-",
-            alpha=0.5,
-        )
+        if args.asteroid:
+            pipeflux = norm_fit(pipewave, ptab["RF_FLUX"].data)
+        else:
+            pipeflux = ptab["RF_FLUX"].data * np.square(pipewave)
+        if showseg:
+            ax.plot(
+                pipewave,
+                pipeflux / np.nanmedian(pipeflux) + (5. * offval),
+                "g-",
+                alpha=0.5,
+            )
 
         nwaves = np.sum(gvals)
         allspec = np.empty((nwaves, 4))
@@ -140,13 +160,17 @@ def main():
 
             pcol = "b"
             pwave = np.array(atab["WAVELENGTH"].data)
-            pflux = atab["FLUX"].data * np.square(pwave)
-            ax.plot(
-                pwave,
-                pflux / np.nanmedian(pflux) + ((k) * offval),
-                f"{pcol}-",
-                alpha=0.5,
-            )
+            if args.asteroid:
+                pflux = norm_fit(pwave, atab["FLUX"].data)
+            else:
+                pflux = atab["FLUX"].data * np.square(pwave)
+            if showseg:
+                ax.plot(
+                    pwave,
+                    pflux / np.nanmedian(pflux) + ((k) * offval),
+                    f"{pcol}-",
+                    alpha=0.5,
+                )
 
             pfluxrf = atab["RF_FLUX"].data * np.square(pwave)
             allspecrf[:, k] = pfluxrf
@@ -162,13 +186,14 @@ def main():
             refspec = rtab[f"dither{cdith}"][0:nwaves].data
 
             # ref correction
-            ax.plot(
-                refwave,
-                refspec + ((k + 0.33) * offval),
-                color="red",
-                linestyle="-",
-                alpha=0.5,
-            )
+            if showseg:
+                ax.plot(
+                    refwave,
+                    refspec + ((k + 0.25) * offval),
+                    color="red",
+                    linestyle="-",
+                    alpha=0.5,
+                )
 
             # corrected spectra
             corflux = pflux / refspec
@@ -178,13 +203,14 @@ def main():
                 corflux *= dapcor
 
             allspec[:, k] = corflux
-            ax.plot(
-                refwave,
-                corflux / np.nanmedian(corflux) + ((k + 0.67) * offval),
-                color="purple",
-                linestyle="-",
-                alpha=0.5,
-            )
+            if showseg:
+                ax.plot(
+                    refwave,
+                    corflux / np.nanmedian(corflux) + ((k + 0.50) * offval),
+                    color="purple",
+                    linestyle="-",
+                    alpha=0.5,
+                )
 
             dith_ave[k] = np.nanmedian(corflux)
 
@@ -201,7 +227,7 @@ def main():
         dave = np.average(dith_ave)
         for k in range(4):
             allspec[:, k] *= dave / dith_ave[k]
-        #print(chn, band, dith_ave)
+        # print(chn, band, dith_ave)
 
         # make average corrected spectrum
         specclipped = sigma_clipped_stats(
@@ -215,13 +241,14 @@ def main():
         )  # , cenfunc=custest)
 
         avespec = specclipped[0]
-        ax.plot(
-            refwave,
-            avespec / np.nanmedian(avespec) + (5 * offval),
-            color="purple",
-            linestyle="-",
-            alpha=0.75,
-        )
+        if showseg:
+            ax.plot(
+                refwave,
+                avespec / np.nanmedian(avespec) + (4.0 * offval),
+                color="purple",
+                linestyle="-",
+                alpha=0.75,
+            )
 
         sdefringe = fit_residual_fringes_1d(
             avespec, refwave, channel=chn + 1, ignore_regions=maskreg
@@ -252,7 +279,7 @@ def main():
             sstats_pipe = sigma_clipped_stats(tratio)
 
             print(
-                "w/ rfcor, static rfcor, default:",
+                f"{chn}, {band}: w/ rfcor, static rfcor, default:",
                 sstats_fin[0] / sstats_fin[2],
                 sstats[0] / sstats[2],
                 sstats_pipe[0] / sstats_pipe[2],
@@ -260,21 +287,22 @@ def main():
 
         # residual definging on the final average
         # sdefringe = rf1d(avespec, refwave, chn+1)
-        ax.plot(
-            refwave,
-            sdefringe / np.nanmedian(sdefringe) + (5.33 * offval),
-            linestyle="-",
-            color="black",
-            alpha=0.75,
-        )
+        if showseg:
+            ax.plot(
+                refwave,
+                sdefringe / np.nanmedian(sdefringe) + (4.5 * offval),
+                linestyle="-",
+                color="black",
+                alpha=0.75,
+            )
 
-        ax.plot(
-            refwave,
-            rfringecor / np.nanmedian(rfringecor) + (5.67 * offval),
-            linestyle="-",
-            color="orange",
-            alpha=0.75,
-        )
+            ax.plot(
+                refwave,
+                rfringecor / np.nanmedian(rfringecor) + (4.25 * offval),
+                linestyle="-",
+                color="orange",
+                alpha=0.75,
+            )
 
         ofile = f"{cname}/{cname}{extstr}_static_rfcorr_ch{chn}-{band}_x1d.fits"
         otab = QTable()
@@ -285,36 +313,114 @@ def main():
         otab.write(ofile, overwrite=True)
 
         # make average pipline rf corrected spectrum
-        specrfclipped = sigma_clipped_stats(allspecrf, axis=1, sigma=2.0)
-        avespecrf = specrfclipped[0]
-        ax.plot(
-            refwave,
-            avespecrf / np.nanmedian(avespecrf) + (4.67 * offval),
-            "c-",
-            alpha=0.75,
-        )
+        # specrfclipped = sigma_clipped_stats(allspecrf, axis=1, sigma=2.0)
+        # avespecrf = specrfclipped[0]
+        # ax.plot(
+        #     refwave,
+        #     avespecrf / np.nanmedian(avespecrf) + (4.67 * offval),
+        #     "c-",
+        #     alpha=0.75,
+        # )
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-    ax.set_ylabel(r"$\lambda^2 F(\nu)$ / median($\lambda^2 F(\nu)$)")
+    if args.asteroid:
+        ylab = r"$F(\nu)$/model + constant"
+    else:
+        ylab = r"normalized $\lambda^2 F(\nu)$ + const"
+    ax.set_ylabel(ylab)
 
     if args.dithsub:
         ax.set_title("DithSub")
 
     if args.chan:
-        if args.chan == "1":
-            xrange = [4.8, 8.0]
-        elif args.chan == "2":
-            xrange = [7.25, 12.0]
-        elif args.chan == "3":
-            xrange = [11.5, 18.0]
-        else:
-            xrange = [17.5, 29.0]
-        ax.set_xlim(xrange)
         channame = args.chan
     else:
         channame = "all"
+    xrange = np.array(ax.get_xlim())
+    textx = xrange[0] + 0.04 * (xrange[1] - xrange[0])
+    textx2 = xrange[1] - 0.04 * (xrange[1] - xrange[0])
+    xrange[1] = xrange[1] + 0.08 * (xrange[1] - xrange[0])
+    ax.set_xlim(xrange)
 
-    ax.set_ylim(0.95, 1.15 + (5 * offval))
+    for i in range(4):
+        ax.text(
+            textx2,
+            1.0 + i * offval,
+            "Obs",
+            fontsize=0.7 * fontsize,
+            ha="left",
+            color="b",
+        )
+        ax.text(
+            textx2,
+            1.0 + (i + 0.25) * offval,
+            "RRSRF",
+            fontsize=0.7 * fontsize,
+            ha="left",
+            color="r",
+        )
+        ax.text(
+            textx2,
+            1.0 + (i + 0.5) * offval,
+            "Obs/RRSRF",
+            fontsize=0.7 * fontsize,
+            ha="left",
+            color="purple",
+        )
+
+        ax.text(
+            textx,
+            1.0 + i * offval,
+            f"Dither {i+1}",
+            va="bottom",
+            ha="right",
+            rotation=90.0,
+            fontsize=0.7 * fontsize,
+        )
+
+    ax.text(
+        textx,
+        1.0 + 4 * offval,
+        "Averages",
+        ha="right",
+        rotation=90.0,
+        fontsize=0.7 * fontsize,
+    )
+
+    ax.text(
+        textx2,
+        1.0 + 4.0 * offval,
+        "Ave",
+        fontsize=0.7 * fontsize,
+        ha="left",
+        color="purple",
+    )
+    ax.text(
+        textx2,
+        1.0 + 4.25 * offval,
+        "rfcor",
+        fontsize=0.7 * fontsize,
+        ha="left",
+        color="orange",
+    )
+    ax.text(
+        textx2,
+        1.0 + 4.5 * offval,
+        "Ave/rfcor",
+        fontsize=0.7 * fontsize,
+        ha="left",
+        color="black",
+    )
+    ax.text(
+        textx2,
+        1.0 + 5.0 * offval,
+        "Pipeline",
+        fontsize=0.7 * fontsize,
+        ha="left",
+        color="green",
+    )
+
+    ax.set_ylim(0.95, 1.05 + (5 * offval))
     ax.set_title(args.starname)
 
     # ax.legend()
