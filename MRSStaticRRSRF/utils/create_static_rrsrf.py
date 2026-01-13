@@ -54,6 +54,9 @@ if __name__ == "__main__":  # pragma: no cover
     # regions to mask for hot and A stars
     hnames, hwaves = get_h_waves()
     mask_waves_a = hwaves[hwaves <= 6.5]
+    mask_waves_o = np.array(
+        [6.948, 7.43, 9.713, 13.13, 17.27]
+    )  # from David, 9-8, special, 10-9, 11-10, 12-11
 
     # only include lines above 6.5 micron
     #  correction ok and G stars/asteroids not useable
@@ -179,6 +182,10 @@ if __name__ == "__main__":  # pragma: no cover
                                     if stype == "A":
                                         tmask_waves = np.concatenate(
                                             [tmask_waves, mask_waves_a]
+                                        )
+                                    else:
+                                        tmask_waves = np.concatenate(
+                                            [tmask_waves, mask_waves_o]
                                         )
                                 elif stype in ["G"]:
                                     tmask_hwidth = mask_hwidth_g
@@ -329,7 +336,7 @@ if __name__ == "__main__":  # pragma: no cover
         pstr = ""
     ax.set_ylabel(f"F{pstr}/F(model)")
 
-    ax.legend(loc="upper right", ncol=3, fontsize=0.7 * fontsize)
+    ax.legend(loc="upper right", ncol=4, fontsize=0.6 * fontsize)
 
     fig.tight_layout()
 
