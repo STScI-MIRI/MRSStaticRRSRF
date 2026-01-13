@@ -1,6 +1,7 @@
 import glob
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
 from astropy.io import fits
 
 
@@ -24,30 +25,33 @@ if __name__ == "__main__":  # pragma: no cover
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(10, 8))
+    ax = np.ravel(axes)
 
     names = ["muCol", "delUMi", "HR5467",
-             "HD2811_c1", "HD2811_c2", "HD2811_c3", "HD2811_c4"]
-    # names = ["stage2"]
+             "HD2811_c1", "HD2811_c2", "HD2811_c3", "HD2811_c4",
+             "16CygB", "HD37962", "HR6538",
+             # "Athalia", "Jena", "Henrietta_1", "Henrietta_2", "Polana"
+             ]
+    names = ["10lac_many"]
     for cname in names:
 
         for k, cdith in enumerate(["1", "2", "3", "4"]):    
             files = glob.glob(f"{cname}/jw*_0000{cdith}_*_x1d.fits")
-            print(files)
 
             for cfile in files:
 
                 h = fits.getheader(cfile)
                 chn = int(h["CHANNEL"])
                 band = h["BAND"].lower()
-                print(chn, band)
 
-                if (chn == 1) & (band == "short"):
+                if (chn < 5) & (band == "long"):
                     h = fits.getheader(cfile, ext=1)
                     x = h["EXTR_X"]
                     y = h["EXTR_Y"]
-                    print(x, y)
-                    ax.plot([x], [y], marker=f"${cdith}$", color="black", linestyle="none")
+                    if chn == 1:
+                        print(cfile, x, y)
+                    ax[chn-1].plot([x], [y], marker=f"${cdith}$", color="black", linestyle="none")
 
     fig.tight_layout()
 
