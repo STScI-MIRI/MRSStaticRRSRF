@@ -6,7 +6,7 @@ from scipy.signal import medfilt
 # fmt: off
 #   info is ([short, medium, long], model file, type)
 sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001_08101"], "mucol_mod_006_r10000.fits", "hot", "purple"),
-         "10Lac_center": (["jw03779002001_0310a", "jw03779004001_12101", "jw03779006001_0310a"], "10lac_mod_006_r10000.fits", "hot", "indigo"),
+         # "10Lac_center": (["jw03779002001_0310a", "jw03779004001_12101", "jw03779006001_0310a"], "10lac_mod_006_r10000.fits", "hot", "indigo"),
          "delUMi": (["jw01536024001_04102", "jw01536024001_04104", "jw01536024001_04106"], "delumi_mod_005_r10000.fits", "A", "dodgerblue"),
          "HR5467": (["jw04496009001_03102", "jw04496009001_03104", "jw04496009001_03106"], "hd128998_mod_004_r10000.fits", "A", "aqua"),
          "HD2811_c1": (["jw01536022001_08101", "jw01536022001_06101", "jw01536022001_04101"], "hd2811_mod_006_r10000.fits", "A", "forestgreen"),

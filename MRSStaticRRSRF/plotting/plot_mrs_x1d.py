@@ -76,7 +76,6 @@ def main():
 
     # fmt: on
     for k, cfile in enumerate(files):
-        print(cfile)
         pipefile = cfile.replace("static_rfcorr", "level3")
         # get details of segment so the right color can be used
         h = fits.getheader(pipefile, hdu=1)
@@ -110,7 +109,6 @@ def main():
             tpflux = cflux
         else:
             tpflux = cflux * np.power(cwave, 2.0)
-        print(tpflux)
         ax.plot(cwave, tpflux, linestyle="-", color=pcol, alpha=0.8)
 
         if offval is None:
@@ -124,7 +122,6 @@ def main():
             tpipeflux = pipeflux
         else:
             tpipeflux = pipeflux * np.power(pipewave, 2.0)
-        print(tpipeflux)
         ax.plot(pipewave, tpipeflux - offval, linestyle="--", color=pcol, alpha=0.8)
 
         nwave, nflux, nunc, nnpts = rebin_constres(

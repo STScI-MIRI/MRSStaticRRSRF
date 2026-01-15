@@ -1,4 +1,5 @@
 import glob
+import copy
 import importlib.resources as importlib_resources
 import argparse
 import warnings
@@ -79,13 +80,18 @@ def main():
     offval = 0.15
 
     # S/N regions
-    snreg = {"1short": [5.28, 5.35], "1medium": [6.0, 6.1], "1long": [7.1, 7.25]}
+    snreg = {"1short": [5.28, 5.35], "1medium": [6.0, 6.1], "1long": [7.1, 7.25],
+             "2short": [8.3, 8.4], "2medium": [9.1, 9.3], "2long": [10.9, 11.1],
+             "3short": [12.8, 13.0], "3medium": [14.3, 14.5], "3long": [15.6, 16.0],
+             "4short": [19.2, 19.7], "4medium": [21.5, 22.0], "4long": [25.0, 26.0],
+             }
 
     # regions to mask for residual fringe corrections
     hnames, hwaves = get_h_waves()
+    maskwidth = 0.05
     maskreg = []
     for hwave in hwaves:
-        maskreg.append([hwave - 0.01, hwave + 0.01])
+        maskreg.append([hwave - maskwidth / 2.0, hwave + maskwidth / 2.0])
 
     cname = args.starname
     # get the 1st dithers only
@@ -98,10 +104,18 @@ def main():
             f"{cname}/jw*_00001_*long_?_x1d.fits"
         )
 
+    # save te S/N measurements
+    sntab = QTable(
+        # fmt: off
+        names=("Segment", "minwave", "maxwave", "sn_prsrf_rfcor", "sn_prsrf", "sn_pipe"),
+        dtype=("S", "f", "f", "f", "f", "f")
+        # fmt:on
+    )
+
     # warning about masks in numpy that I've not managed to figure out yet
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    for cfile in files:
+    for cfile in np.sort(files):
 
         h = fits.getheader(cfile)
         chn = int(h["CHANNEL"])
@@ -253,8 +267,6 @@ def main():
         sdefringe = fit_residual_fringes_1d(
             avespec, refwave, channel=chn + 1, ignore_regions=maskreg
         )
-        # sdefringe = avespec
-        rfringecor = sdefringe / avespec
 
         ckey = f"{chn}{band}"
         if ckey in snreg.keys():
@@ -285,6 +297,12 @@ def main():
                 sstats_pipe[0] / sstats_pipe[2],
             )
 
+            sntab.add_row([f"{chn}{band}", snreg[ckey][0], snreg[ckey][0],
+                           sstats_fin[0] / sstats_fin[2],
+                           sstats[0] / sstats[2],
+                           sstats_pipe[0] / sstats_pipe[2],
+                           ])
+
         # residual definging on the final average
         # sdefringe = rf1d(avespec, refwave, chn+1)
         if showseg:
@@ -296,9 +314,12 @@ def main():
                 alpha=0.75,
             )
 
+            gvals = np.isfinite(avespec)
+            rfringecor = sdefringe[gvals] / avespec[gvals]
+
             ax.plot(
-                refwave,
-                rfringecor / np.nanmedian(rfringecor) + (4.25 * offval),
+                refwave[gvals],
+                rfringecor[gvals] / np.nanmedian(rfringecor[gvals]) + (4.25 * offval),
                 linestyle="-",
                 color="orange",
                 alpha=0.75,
@@ -321,6 +342,10 @@ def main():
         #     "c-",
         #     alpha=0.75,
         # )
+
+
+    snfile = f"{cname}/{cname}{extstr}_static_prsrfcor_sn.fits"
+    sntab.write(snfile, overwrite=True)
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
     if args.asteroid:
