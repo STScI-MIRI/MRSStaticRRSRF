@@ -32,7 +32,9 @@ def main():
     parser.add_argument(
         "starname", help="Name of the star and subdirectory with the MRS data"
     )
-    parser.add_argument("--notrj", help="plot F(nu), not lambda^2 F(nu)", action="store_true")
+    parser.add_argument(
+        "--notrj", help="plot F(nu), not lambda^2 F(nu)", action="store_true"
+    )
     parser.add_argument(
         "--dithsub", help="use the pair dither subtraction data", action="store_true"
     )
@@ -177,7 +179,8 @@ def main():
             if args.notrj:
                 ofac = 0.7
             else:
-                ofac = 0.1
+                ofac = 0.2
+            aveval = np.nanmedian(tpflux)
             offval = np.nanmedian(tpflux) * ofac
 
         if args.notrj:
@@ -192,11 +195,24 @@ def main():
             alpha=0.8,
         )
 
+        # plot pipeline RF correction
+        ax.plot(
+            pcwave,
+            (tpflux / tpfluxrf) * aveval * 0.95,
+            linestyle="-",
+            color="orange",
+            alpha=0.8,
+        )
+
         # dithsub
         if args.dithsub:
             tdsflux = dscflux * np.power(dscwave, 2.0)
             ax.plot(
-                dscwave, tdsflux * dsmultfac + offval, linestyle="-", color=pcol, alpha=0.8
+                dscwave,
+                tdsflux * dsmultfac + offval,
+                linestyle="-",
+                color=pcol,
+                alpha=0.8,
             )
             tdsfluxrf = dscfluxrf * np.power(dscwave, 2.0)
             ax.plot(
@@ -225,6 +241,15 @@ def main():
             tpipefluxrf * pmultfacrf - (1 - 0.3) * offval,
             linestyle="-",
             color=pcol,
+            alpha=0.8,
+        )
+
+        # plot pipeline RF correction for tge pipeline reductions
+        ax.plot(
+            pcwave,
+            (tpipeflux / tpipefluxrf) * aveval * 0.75,
+            linestyle="-",
+            color="orange",
             alpha=0.8,
         )
 
@@ -261,6 +286,7 @@ def main():
     hnames, hwaves = get_h_waves()
 
     for cname, cwave in zip(hnames, hwaves):
+        ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
         ax.text(
             cwave,
             y1,

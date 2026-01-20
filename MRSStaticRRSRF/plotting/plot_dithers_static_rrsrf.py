@@ -75,7 +75,7 @@ def main():
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
 
     offval = 0.15
 
