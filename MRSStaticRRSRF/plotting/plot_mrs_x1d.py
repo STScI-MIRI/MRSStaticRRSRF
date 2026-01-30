@@ -115,7 +115,7 @@ def main():
             if args.notrj:
                 oval = 0.2
             else:
-                oval = 0.05
+                oval = 0.075
             offval = np.nanmedian(tpflux) * oval
 
         if args.notrj:
@@ -214,6 +214,7 @@ def main():
     hnames, hwaves = get_h_waves()
 
     for cname, cwave in zip(hnames, hwaves):
+        ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
         ax.text(
             cwave,
             y1,

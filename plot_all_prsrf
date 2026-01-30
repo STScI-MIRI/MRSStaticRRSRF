@@ -3,6 +3,6 @@
 
 for CHAN in 1 2 3 4
 do
-    python MRSStaticRRSRF/plotting/plot_static_rrsrf.py --chan  $CHAN --pdf
-    python MRSStaticRRSRF/plotting/plot_static_rrsrf.py --chan  $CHAN --rfcor --pdf
+    python MRSStaticRRSRF/plotting/plot_prsrf.py --chan  $CHAN --pdf
+    python MRSStaticRRSRF/plotting/plot_prsrf.py --chan  $CHAN --rfcor --pdf
 done

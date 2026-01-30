@@ -107,8 +107,10 @@ def main():
     # save te S/N measurements
     sntab = QTable(
         # fmt: off
-        names=("Segment", "minwave", "maxwave", "sn_prsrf_rfcor", "sn_prsrf", "sn_pipe"),
-        dtype=("S", "f", "f", "f", "f", "f")
+        names=("Segment", "minwave", "maxwave",
+               "sn_prsrf", "sn_prsrf_rfcor", "sn_pipe", "sn_pipe_rfcor"),
+        dtype=("S", "f", "f",
+               "f", "f", "f", "f")
         # fmt:on
     )
 
@@ -144,13 +146,15 @@ def main():
             ptab = QTable.read(pipefile, hdu=1)
         pipewave = np.array(ptab["WAVELENGTH"].data)
         if args.asteroid:
-            pipeflux = norm_fit(pipewave, ptab["RF_FLUX"].data)
+            pipeflux = norm_fit(pipewave, ptab["FLUX"].data)
+            pipefluxrf = norm_fit(pipewave, ptab["RF_FLUX"].data)
         else:
-            pipeflux = ptab["RF_FLUX"].data * np.square(pipewave)
+            pipeflux = ptab["FLUX"].data * np.square(pipewave)
+            pipefluxrf = ptab["RF_FLUX"].data * np.square(pipewave)
         if showseg:
             ax.plot(
                 pipewave,
-                pipeflux / np.nanmedian(pipeflux) + (5. * offval),
+                pipefluxrf / np.nanmedian(pipefluxrf) + (5. * offval),
                 "g-",
                 alpha=0.5,
             )
@@ -290,17 +294,24 @@ def main():
             tratio = pipeflux[gvals] / fitted_line(pipewave[gvals])
             sstats_pipe = sigma_clipped_stats(tratio)
 
+            # default pipeline with rfcor
+            fitted_line = fit(line_init, pipewave[gvals], pipefluxrf[gvals])
+            tratio = pipefluxrf[gvals] / fitted_line(pipewave[gvals])
+            sstats_piperf = sigma_clipped_stats(tratio)
+
             print(
-                f"{chn}, {band}: w/ rfcor, static rfcor, default:",
-                sstats_fin[0] / sstats_fin[2],
+                f"{chn}, {band}: prsrf, prsrf w/ rfcor, default, default rfcor:",
                 sstats[0] / sstats[2],
+                sstats_fin[0] / sstats_fin[2],
                 sstats_pipe[0] / sstats_pipe[2],
+                sstats_piperf[0] / sstats_piperf[2],
             )
 
             sntab.add_row([f"{chn}{band}", snreg[ckey][0], snreg[ckey][0],
-                           sstats_fin[0] / sstats_fin[2],
                            sstats[0] / sstats[2],
+                           sstats_fin[0] / sstats_fin[2],
                            sstats_pipe[0] / sstats_pipe[2],
+                           sstats_piperf[0] / sstats_piperf[2],
                            ])
 
         # residual definging on the final average

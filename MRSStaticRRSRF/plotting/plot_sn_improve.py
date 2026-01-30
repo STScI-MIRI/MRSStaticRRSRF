@@ -33,11 +33,13 @@ if __name__ == "__main__":  # pragma: no cover
     if args.wave:
         figsize = (14, 8)
     else:
-        figsize = (10, 10)
-    fig, ax = plt.subplots(figsize=figsize)
+        figsize = (14, 8)
+    fig, ax = plt.subplots(ncols=2, figsize=figsize, sharex=True, sharey=True)
 
     if args.names:
         names = args.names
+        cmap = plt.get_cmap('tab20b') # Example colormap
+        colors = [cmap(i) for i in np.linspace(0, 1, len(names))]
     else:
         names = sinfo.keys()
 
@@ -46,7 +48,7 @@ if __name__ == "__main__":  # pragma: no cover
     for m, cname in enumerate(names):
 
         if args.names:
-            scolor = "b"
+            scolor = colors[m]
         else:
             cfiles, mfile, stype, scolor = sinfo[cname]
 
@@ -58,46 +60,60 @@ if __name__ == "__main__":  # pragma: no cover
             awave = 0.5 * (sntab["minwave"] + sntab["maxwave"])
             awave += awave * 0.05 * (random.random() - 0.5)
             pname = cname
-            for cwave, sn1, sn2, sn3, seg in zip(
+            for cwave, sn1, sn2, sn3, sn4, seg in zip(
                 awave,
                 sntab["sn_pipe"],
+                sntab["sn_pipe_rfcor"],
                 sntab["sn_prsrf"],
                 sntab["sn_prsrf_rfcor"],
                 sntab["Segment"],
             ):
 
                 if args.wave:
-                    ax.plot(
-                        [cwave, cwave, cwave],
-                        [sn1, sn2, sn3],
+                    ax[0].plot(
+                        [cwave, cwave],
+                        [sn1, sn3],
+                        linestyle="-",
+                        color=scolor,
+                        label=pname,
+                    )
+                    ax[0].plot([cwave], [sn1], marker="s", mfc="none", color=scolor)
+                    ax[0].plot([cwave], [sn3], marker="s", color=scolor)
+
+                    ax[1].plot(
+                        [cwave, cwave],
+                        [sn2, sn4],
                         linestyle="-",
                         color=scolor,
                         label=pname,
                     )
                     pname = None
-                    ax.plot([cwave], [sn1], marker="s", mfc="none", color=scolor)
-                    ax.plot([cwave], [sn2], marker="P", mfc="none", color=scolor)
-                    ax.plot([cwave], [sn3], marker="s", color=scolor)
+                    ax[1].plot([cwave], [sn2], marker="s", mfc="none", color=scolor)
+                    ax[1].plot([cwave], [sn4], marker="s", color=scolor)
                 else:
                     segnum = int(seg[:1]) - 1
-                    ax.plot([sn1], [sn3], marker=segsym[segnum], color=scolor, label=pname)
+                    ax[0].plot([sn1], [sn3], marker=segsym[segnum], color=scolor, label=pname)
+                    ax[1].plot([sn2], [sn4], marker=segsym[segnum], color=scolor, label=pname)
                     pname = None
 
-    if args.wave:
-        ax.set_xscale("log")
-        ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
-        ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-        ax.set_ylabel("S/N")
-        ax.legend(fontsize=0.6 * fontsize, ncol=4)
-    else:
-        ylim = ax.get_ylim()
-        ax.plot(ylim, ylim, "k--", alpha=0.7)
-        ax.plot(ylim, np.array(ylim) * 2.0, "k:", alpha=0.7)
-        ax.set_xlabel("orig S/N")
-        ax.set_ylabel("PRSRF S/N")
-        ax.set_xlim([0.0, ylim[1]])
-        ax.set_ylim([0.0, ylim[1]])
-        ax.legend(fontsize=0.6 * fontsize, ncol=4)
+    ax[1].set_title("with residual fringe correction")
+
+    for cax in ax:
+        if args.wave:
+            cax.set_xscale("log")
+            cax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+            cax.set_xlabel(r"$\lambda$ [$\mu$m]")
+            cax.set_ylabel("S/N")
+            cax.legend(fontsize=0.6 * fontsize, ncol=4)
+        else:
+            ylim = cax.get_ylim()
+            cax.plot(ylim, ylim, "k--", alpha=0.7)
+            cax.plot(ylim, np.array(ylim) * 2.0, "k:", alpha=0.7)
+            cax.set_xlabel("orig S/N")
+            cax.set_ylabel("PRSRF S/N")
+            cax.set_xlim([0.0, ylim[1]])
+            cax.set_ylim([0.0, ylim[1]])
+            cax.legend(fontsize=0.6 * fontsize, ncol=4)
 
     fig.tight_layout()
 
