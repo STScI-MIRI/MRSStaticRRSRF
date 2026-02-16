@@ -132,6 +132,7 @@ if __name__ == "__main__":  # pragma: no cover
                         pwave = atab["WAVELENGTH"]
                         pflux = atab["FLUX"] * (pwave**2)
                         pflux /= np.median(pflux)
+                        pflux = pflux.value
 
                         useseg = True
                         if mfile is None:
@@ -166,6 +167,7 @@ if __name__ == "__main__":  # pragma: no cover
                                     nflux = convolve(mflux, g)
                                     mfluxseg = np.interp(pwave, mwave, nflux)
                                     mfluxseg /= np.nanmedian(mfluxseg)
+                                    mfluxseg = mfluxseg.value
                                     if useseg:
                                         ax.plot(
                                             pwave,

@@ -31,9 +31,10 @@ if __name__ == "__main__":  # pragma: no cover
     names = ["muCol", "delUMi", "HR5467",
              "HD2811_c1", "HD2811_c2", "HD2811_c3", "HD2811_c4",
              "16CygB", "HD37962", "HR6538",
-             # "Athalia", "Jena", "Henrietta_1", "Henrietta_2", "Polana"
+             "Athalia", "Jena",
+             # "Henrietta_1", "Henrietta_2", "Polana" (***different dither pattern***)
              ]
-    names = ["10lac_many"]
+    # names = ["10lac_many"]
     for cname in names:
 
         for k, cdith in enumerate(["1", "2", "3", "4"]):    

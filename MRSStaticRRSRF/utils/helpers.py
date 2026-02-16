@@ -22,9 +22,10 @@ sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001
         # "1998-BC1": (["jw01522091001_03105", "jw01522091001_03103", "jw01522091001_03101"], None, "asteroid", "brown"),   # low S/N
         # "1999-XZ93": (["jw01522093001_04106", "jw01522093001_04104", "jw01522093001_04102"], None, "asteroid", "firebrick"),   # low S/N
         # "1999-XC173": (["jw06618001001_04102", "jw06618001001_04104", "jw06618001001_04106"], None, "astroid", "tomato"),
-         "Polana": (["jw03760002001_03105", "jw03760002001_03103", "jw03760002001_03101"], None, "asteroid", "brown"),
-         "Henrietta_1": (["jw03760004001_03105", "jw03760004001_03103", "jw03760004001_03101"], None, "asteroid", "firebrick"),
-         "Henrietta_2": (["jw03760007001_03101", "jw03760007001_03103", "jw03760007001_03105"], None, "asteroid", "tomato")
+        # "Polana": (["jw03760002001_03105", "jw03760002001_03103", "jw03760002001_03101"], None, "asteroid", "brown"),  # different dither pattern
+        # "Henrietta_1": (["jw03760004001_03105", "jw03760004001_03103", "jw03760004001_03101"], None, "asteroid", "firebrick"),  # different dither pattern
+        # "Henrietta_2": (["jw03760007001_03101", "jw03760007001_03103", "jw03760007001_03105"], None, "asteroid", "tomato"),  # different dither pattern
+         "Hercynia": (["jw02361005001_03105", "jw02361005001_03103", "jw02361005001_03101"], None, "asteroid", "black"),
         }
 
 # colors for different MRS segments

@@ -31,7 +31,7 @@ if __name__ == "__main__":  # pragma: no cover
     plt.rc("ytick.minor", width=2)
 
     if args.wave:
-        figsize = (14, 8)
+        figsize = (18, 8)
     else:
         figsize = (14, 8)
     fig, ax = plt.subplots(ncols=2, figsize=figsize, sharex=True, sharey=True)
@@ -98,22 +98,24 @@ if __name__ == "__main__":  # pragma: no cover
 
     ax[1].set_title("with residual fringe correction")
 
+    if args.wave:
+        ax[0].set_ylabel("S/N")
+    else:
+        ax[0].set_ylabel("PFPC S/N")
     for cax in ax:
         if args.wave:
             cax.set_xscale("log")
             cax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+            cax.xaxis.set_minor_formatter(ticker.ScalarFormatter())
             cax.set_xlabel(r"$\lambda$ [$\mu$m]")
-            cax.set_ylabel("S/N")
-            cax.legend(fontsize=0.6 * fontsize, ncol=4)
         else:
             ylim = cax.get_ylim()
             cax.plot(ylim, ylim, "k--", alpha=0.7)
             cax.plot(ylim, np.array(ylim) * 2.0, "k:", alpha=0.7)
             cax.set_xlabel("orig S/N")
-            cax.set_ylabel("PRSRF S/N")
             cax.set_xlim([0.0, ylim[1]])
             cax.set_ylim([0.0, ylim[1]])
-            cax.legend(fontsize=0.6 * fontsize, ncol=4)
+    cax.legend(fontsize=0.6 * fontsize, ncol=3)
 
     fig.tight_layout()
 
