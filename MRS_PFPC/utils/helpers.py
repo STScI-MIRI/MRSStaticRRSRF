@@ -25,7 +25,7 @@ sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001
         # "Polana": (["jw03760002001_03105", "jw03760002001_03103", "jw03760002001_03101"], None, "asteroid", "brown"),  # different dither pattern
         # "Henrietta_1": (["jw03760004001_03105", "jw03760004001_03103", "jw03760004001_03101"], None, "asteroid", "firebrick"),  # different dither pattern
         # "Henrietta_2": (["jw03760007001_03101", "jw03760007001_03103", "jw03760007001_03105"], None, "asteroid", "tomato"),  # different dither pattern
-         "Hercynia": (["jw02361005001_03105", "jw02361005001_03103", "jw02361005001_03101"], None, "asteroid", "black"),
+        # "Hercynia": (["jw02361005001_03105", "jw02361005001_03103", "jw02361005001_03101"], None, "asteroid", "black"),
         }
 
 # colors for different MRS segments
@@ -34,7 +34,6 @@ pcolors = ["violet", "mediumorchid", "purple",
             "chartreuse", "limegreen", "forestgreen",
             "lightcoral", "orangered", "red"]
 # fmt: on
-
 
 # Return wavelength in microns rounded to 5 decimals
 def rydberg(n1, n2):

@@ -6,18 +6,17 @@ import matplotlib.ticker as ticker
 from astropy.table import QTable
 import random
 
-from MRSStaticRRSRF.utils.helpers import sinfo
+from MRS_PFPC.utils.helpers import sinfo
 
 
 if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument("--names", help="names of stars", nargs="+")
-    parser.add_argument("--wave", help="plot by wavelength", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    fontsize = 20
+    fontsize = 14
 
     font = {"size": fontsize}
 
@@ -30,21 +29,19 @@ if __name__ == "__main__":  # pragma: no cover
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    if args.wave:
-        figsize = (18, 8)
-    else:
-        figsize = (14, 8)
-    fig, ax = plt.subplots(ncols=2, figsize=figsize, sharex=True, sharey=True)
+    figsize = (12, 8)
+    fig, ax = plt.subplots(ncols=2, nrows=2, figsize=figsize, sharey=True)
 
     if args.names:
         names = args.names
-        cmap = plt.get_cmap('tab20b') # Example colormap
+        cmap = plt.get_cmap("tab20b")  # Example colormap
         colors = [cmap(i) for i in np.linspace(0, 1, len(names))]
     else:
         names = sinfo.keys()
 
     segsym = ["$1$", "$2$", "$3$", "$4$"]
 
+    max_ratio = 0.0
     for m, cname in enumerate(names):
 
         if args.names:
@@ -52,10 +49,12 @@ if __name__ == "__main__":  # pragma: no cover
         else:
             cfiles, mfile, stype, scolor = sinfo[cname]
 
-        fname = f"{cname}/{cname}_static_prsrfcor_sn.fits"
+        fname = f"{cname}/{cname}_pfpc_sn.fits"
 
         if os.path.exists(fname):
             sntab = QTable.read(fname)
+            sindxs = np.argsort(sntab["Segment"])
+            sntab = sntab[sindxs]
 
             awave = 0.5 * (sntab["minwave"] + sntab["maxwave"])
             awave += awave * 0.05 * (random.random() - 0.5)
@@ -64,58 +63,75 @@ if __name__ == "__main__":  # pragma: no cover
                 awave,
                 sntab["sn_pipe"],
                 sntab["sn_pipe_rfcor"],
-                sntab["sn_prsrf"],
-                sntab["sn_prsrf_rfcor"],
+                sntab["sn_pfpc"],
+                sntab["sn_pfpc_rfcor"],
                 sntab["Segment"],
             ):
 
-                if args.wave:
-                    ax[0].plot(
-                        [cwave, cwave],
-                        [sn1, sn3],
-                        linestyle="-",
-                        color=scolor,
-                        label=pname,
-                    )
-                    ax[0].plot([cwave], [sn1], marker="s", mfc="none", color=scolor)
-                    ax[0].plot([cwave], [sn3], marker="s", color=scolor)
+                segnum = int(seg[:1]) - 1
 
-                    ax[1].plot(
-                        [cwave, cwave],
-                        [sn2, sn4],
-                        linestyle="-",
-                        color=scolor,
-                        label=pname,
-                    )
-                    pname = None
-                    ax[1].plot([cwave], [sn2], marker="s", mfc="none", color=scolor)
-                    ax[1].plot([cwave], [sn4], marker="s", color=scolor)
-                else:
-                    segnum = int(seg[:1]) - 1
-                    ax[0].plot([sn1], [sn3], marker=segsym[segnum], color=scolor, label=pname)
-                    ax[1].plot([sn2], [sn4], marker=segsym[segnum], color=scolor, label=pname)
-                    pname = None
+                if (sn3 / sn1) > max_ratio:
+                    max_ratio = sn3 / sn1
+                if (sn4 / sn4) > max_ratio:
+                    max_ratio = sn4 / sn2
 
-    ax[1].set_title("with residual fringe correction")
+                # versus wavelength
+                ax[0, 0].plot(
+                    [cwave],
+                    [sn3 / sn1],
+                    marker=segsym[segnum],
+                    color=scolor,
+                    label=pname,
+                )
 
-    if args.wave:
-        ax[0].set_ylabel("S/N")
-    else:
-        ax[0].set_ylabel("PFPC S/N")
-    for cax in ax:
-        if args.wave:
-            cax.set_xscale("log")
-            cax.xaxis.set_major_formatter(ticker.ScalarFormatter())
-            cax.xaxis.set_minor_formatter(ticker.ScalarFormatter())
-            cax.set_xlabel(r"$\lambda$ [$\mu$m]")
-        else:
-            ylim = cax.get_ylim()
-            cax.plot(ylim, ylim, "k--", alpha=0.7)
-            cax.plot(ylim, np.array(ylim) * 2.0, "k:", alpha=0.7)
-            cax.set_xlabel("orig S/N")
-            cax.set_xlim([0.0, ylim[1]])
-            cax.set_ylim([0.0, ylim[1]])
-    cax.legend(fontsize=0.6 * fontsize, ncol=3)
+                ax[0, 1].plot(
+                    [cwave],
+                    [sn4 / sn2],
+                    marker=segsym[segnum],
+                    color=scolor,
+                    label=pname,
+                )
+
+                # versus pipeline S/N
+                ax[1, 0].plot(
+                    #[sn1],
+                    [sn3],
+                    [sn3 / sn1],
+                    marker=segsym[segnum],
+                    color=scolor,
+                    label=pname,
+                )
+                ax[1, 1].plot(
+                    #[sn2],
+                    [sn4],
+                    [sn4 / sn2],
+                    marker=segsym[segnum],
+                    color=scolor,
+                    label=pname,
+                )
+                pname = None
+
+    ax[0, 1].set_title("with residual fringe correction")
+
+    for i in range(2):
+        ax[i, 0].set_ylabel("(PFPC S/N)/(pipeline S/N)")
+
+        ax[0, i].set_xscale("log")
+        ax[0, i].xaxis.set_major_formatter(ticker.ScalarFormatter())
+        ax[0, i].xaxis.set_minor_formatter(ticker.ScalarFormatter())
+        ax[0, i].set_xticks([5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 15.0, 20.0, 25.0], minor=True)
+        ax[0, i].tick_params(axis="x", which="minor", labelsize=fontsize * 0.8)
+        ax[0, i].set_xlabel(r"$\lambda$ [$\mu$m]")
+
+        ax[1, i].set_xlabel("PFPC S/N")
+
+        for k in range(int(max_ratio)):
+            ax[0, i].axhline(k+1, linestyle=":", color="k", alpha=0.5)
+            ax[1, i].axhline(k+1, linestyle=":", color="k", alpha=0.5)
+
+    ax[0, 1].legend(fontsize=0.6 * fontsize, ncol=3, handlelength=0, handletextpad=2.0)
+
+    ax[0, 0].set_ylim(0.0, int(max_ratio) + 1)
 
     fig.tight_layout()
 

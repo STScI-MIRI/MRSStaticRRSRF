@@ -7,7 +7,9 @@ from astropy.io import fits
 
 if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser()
-    parser.add_argument("--chan", help="plot only one channel", choices=["1", "2", "3", "4"])
+    parser.add_argument(
+        "--chan", help="plot only one channel", choices=["1", "2", "3", "4"]
+    )
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -28,17 +30,30 @@ if __name__ == "__main__":  # pragma: no cover
     fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(10, 8))
     ax = np.ravel(axes)
 
-    names = ["muCol", "delUMi", "HR5467",
-             "HD2811_c1", "HD2811_c2", "HD2811_c3", "HD2811_c4",
-             "16CygB", "HD37962", "HR6538",
-             "Athalia", "Jena",
-             # "Henrietta_1", "Henrietta_2", "Polana" (***different dither pattern***)
-             ]
+    names = [
+        "muCol",
+        "delUMi",
+        "HR5467",
+        "HD2811_c1",
+        "HD2811_c2",
+        "HD2811_c3",
+        "HD2811_c4",
+        #"16CygB",
+        "HD37962",
+        "HR6538",
+        "Athalia",
+        "Jena",
+        # "Henrietta_1", "Henrietta_2", "Polana" (***different dither pattern***)
+    ]
     # names = ["10lac_many"]
     for cname in names:
 
-        for k, cdith in enumerate(["1", "2", "3", "4"]):    
+        for k, cdith in enumerate(["1", "2", "3", "4"]):
             files = glob.glob(f"{cname}/jw*_0000{cdith}_*_x1d.fits")
+
+            # get the cube size
+            h2 = fits.getheader(files[0], ext=1)
+            print(cname, h2["NAXIS1"], h2["NAXIS2"])
 
             for cfile in files:
 
@@ -50,9 +65,17 @@ if __name__ == "__main__":  # pragma: no cover
                     h = fits.getheader(cfile, ext=1)
                     x = h["EXTR_X"]
                     y = h["EXTR_Y"]
-                    if chn == 1:
-                        print(cfile, x, y)
-                    ax[chn-1].plot([x], [y], marker=f"${cdith}$", color="black", linestyle="none")
+                    #if chn == 1:
+                        # print(cfile, x, y)
+                    ax[chn - 1].plot(
+                        [x], [y], marker=f"${cdith}$", color="black", linestyle="none"
+                    )
+                    # ax[chn - 1].plot(
+                    #     [x], [y], marker=f"${cname}$", color="black", linestyle="none", ms=20
+                    # )
+
+    for chn in range(4):
+        ax[chn].set_title(f"channel {chn+1}")
 
     fig.tight_layout()
 

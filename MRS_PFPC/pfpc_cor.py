@@ -108,7 +108,7 @@ def main():
     sntab = QTable(
         # fmt: off
         names=("Segment", "minwave", "maxwave",
-               "sn_prsrf", "sn_prsrf_rfcor", "sn_pipe", "sn_pipe_rfcor"),
+               "sn_pfpc", "sn_pfpc_rfcor", "sn_pipe", "sn_pipe_rfcor"),
         dtype=("S", "f", "f",
                "f", "f", "f", "f")
         # fmt:on
@@ -299,13 +299,13 @@ def main():
             tratio = pipefluxrf[gvals] / fitted_line(pipewave[gvals])
             sstats_piperf = sigma_clipped_stats(tratio)
 
-            print(
-                f"{chn}, {band}: prsrf, prsrf w/ rfcor, default, default rfcor:",
-                sstats[0] / sstats[2],
-                sstats_fin[0] / sstats_fin[2],
-                sstats_pipe[0] / sstats_pipe[2],
-                sstats_piperf[0] / sstats_piperf[2],
-            )
+            # print(
+            #     f"{chn}, {band}: prsrf, prsrf w/ rfcor, default, default rfcor:",
+            #     sstats[0] / sstats[2],
+            #     sstats_fin[0] / sstats_fin[2],
+            #     sstats_pipe[0] / sstats_pipe[2],
+            #     sstats_piperf[0] / sstats_piperf[2],
+            # )
 
             sntab.add_row([f"{chn}{band}", snreg[ckey][0], snreg[ckey][0],
                            sstats[0] / sstats[2],
@@ -390,7 +390,7 @@ def main():
         ax.text(
             textx2,
             1.0 + (i + 0.25) * offval,
-            "RRSRF",
+            "PFPC",
             fontsize=0.7 * fontsize,
             ha="left",
             color="r",
@@ -398,7 +398,7 @@ def main():
         ax.text(
             textx2,
             1.0 + (i + 0.5) * offval,
-            "Obs/RRSRF",
+            "Obs/PFPC",
             fontsize=0.7 * fontsize,
             ha="left",
             color="purple",
