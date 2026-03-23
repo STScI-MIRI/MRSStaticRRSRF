@@ -213,7 +213,7 @@ def main():
             file_3a = cfile
 
     # get the location of the leak correction file
-    ref = importlib_resources.files("MRSStaticRRSRF") / "leak"
+    ref = importlib_resources.files("MRS_PFPC") / "leak"
     with importlib_resources.as_file(ref) as cdata_path:
         ref_path = str(cdata_path)
 

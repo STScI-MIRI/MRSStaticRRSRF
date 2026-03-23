@@ -5,7 +5,7 @@ import numpy as np
 from astropy.table import QTable
 import astropy.units as u
 
-from MRSStaticRRSRF.utils.helpers import rebin_constres
+from MRS_PFPC.utils.helpers import rebin_constres
 
 
 if __name__ == "__main__":  # pragma: no cover

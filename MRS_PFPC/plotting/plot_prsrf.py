@@ -9,7 +9,7 @@ from astropy.table import QTable
 
 from jwst.residual_fringe.utils import fit_residual_fringes_1d
 
-from MRSStaticRRSRF.utils.helpers import pcolors
+from MRS_PFPC.utils.helpers import pcolors
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -28,7 +28,7 @@ if __name__ == "__main__":  # pragma: no cover
     grow = None
 
     # get the location of the static RRSRF correction files
-    ref = importlib_resources.files("MRSStaticRRSRF") / "refs"
+    ref = importlib_resources.files("MRS_PFPC") / "refs"
     with importlib_resources.as_file(ref) as cdata_path:
         ref_path = str(cdata_path)
 

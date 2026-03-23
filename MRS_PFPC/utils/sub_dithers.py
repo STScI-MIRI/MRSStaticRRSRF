@@ -1,6 +1,6 @@
 import glob
 import argparse
-from MRSStaticRRSRF.utils.mrs_helpers import subdithers
+from MRS_PFPC.utils.mrs_helpers import subdithers
 
 
 def main():

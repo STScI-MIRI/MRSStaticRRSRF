@@ -9,7 +9,7 @@ import astropy.units as u
 from astropy.io import fits
 from astropy.modeling import models, fitting
 
-from MRSStaticRRSRF.utils.helpers import sinfo, pcolors
+from MRS_PFPC.utils.helpers import sinfo, pcolors
 
 
 def main():
@@ -148,7 +148,7 @@ def main():
                     )
 
                 otab.write(
-                    f"MRSStaticRRSRF/refs/mrs_deltaapcor_dithsub_chn{i+1}_{gnames[j]}.fits",
+                    f"MRS_PFPC/refs/mrs_deltaapcor_dithsub_chn{i+1}_{gnames[j]}.fits",
                     overwrite=True,
                 )
 

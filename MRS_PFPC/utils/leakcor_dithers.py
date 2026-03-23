@@ -17,6 +17,6 @@ if __name__ == "__main__":  # pragma: no cover
             print(file_3a, file_1b)
 
             correct_miri_mrs_spectral_leak(
-                file_3a, file_1b, "MRSStaticRRSRF/leak/MRS_spectral_leak_fractional.fits"
+                file_3a, file_1b, "MRS_PFPC/leak/MRS_spectral_leak_fractional.fits"
             )
 
