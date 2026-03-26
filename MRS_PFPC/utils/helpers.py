@@ -6,8 +6,8 @@ from scipy.signal import medfilt
 # fmt: off
 #   info is ([short, medium, long], model file, type)
 sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001_08101"], "mucol_mod_006_r10000.fits", "hot", "purple"),
-         # "10Lac_center": (["jw03779002001_0310a", "jw03779004001_12101", "jw03779006001_0310a"], "10lac_mod_006_r10000.fits", "hot", "indigo"),
-         # "etaUMa": (["jw07565022001_05101", "jw07565022001_07101", "jw07565022001_09101"], "etauma_mod_005_r10000.fits", "hot", "darkorchid"),
+         "10Lac_center": (["jw03779002001_0310a", "jw03779004001_12101", "jw03779006001_0310a"], "10lac_mod_006_r10000.fits", "hot", "indigo"),
+         # "etaUMa": (["jw07565022001_05101", "jw07565022001_07101", "jw07565022001_09101"], "etauma_mod_005_r10000.fits", "hot", "darkorchid"),  # very bright, a bit odd looking
          "delUMi": (["jw01536024001_04102", "jw01536024001_04104", "jw01536024001_04106"], "delumi_mod_005_r10000.fits", "A", "dodgerblue"),
          "HR5467": (["jw04496009001_03102", "jw04496009001_03104", "jw04496009001_03106"], "hd128998_mod_004_r10000.fits", "A", "aqua"),
          "HD2811_c1": (["jw01536022001_08101", "jw01536022001_06101", "jw01536022001_04101"], "hd2811_mod_006_r10000.fits", "A", "forestgreen"),
@@ -22,11 +22,11 @@ sinfo = {"muCol": (["jw04497004001_04101", "jw04497004001_06101", "jw04497004001
          "Jena": (["jw01549055001_04106", "jw01549055001_04104", "jw01549055001_04102"], None, "asteroid", "indianred"),
         # "1998-BC1": (["jw01522091001_03105", "jw01522091001_03103", "jw01522091001_03101"], None, "asteroid", "brown"),   # low S/N
         # "1999-XZ93": (["jw01522093001_04106", "jw01522093001_04104", "jw01522093001_04102"], None, "asteroid", "firebrick"),   # low S/N
-        # "1999-XC173": (["jw06618001001_04102", "jw06618001001_04104", "jw06618001001_04106"], None, "astroid", "tomato"),
+        # "1999-XC173": (["jw06618001001_04102", "jw06618001001_04104", "jw06618001001_04106"], None, "astroid", "tomato"),   # low S/N
         # "Polana": (["jw03760002001_03105", "jw03760002001_03103", "jw03760002001_03101"], None, "asteroid", "brown"),  # different dither pattern
         # "Henrietta_1": (["jw03760004001_03105", "jw03760004001_03103", "jw03760004001_03101"], None, "asteroid", "firebrick"),  # different dither pattern
         # "Henrietta_2": (["jw03760007001_03101", "jw03760007001_03103", "jw03760007001_03105"], None, "asteroid", "tomato"),  # different dither pattern
-        # "Hercynia": (["jw02361005001_03105", "jw02361005001_03103", "jw02361005001_03101"], None, "asteroid", "black"),
+        # "Hercynia": (["jw02361005001_03105", "jw02361005001_03103", "jw02361005001_03101"], None, "asteroid", "black"),  # medium S/N, lots rejected in sigma clipping
         }
 
 # colors for different MRS segments

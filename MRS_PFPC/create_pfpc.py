@@ -49,7 +49,7 @@ if __name__ == "__main__":  # pragma: no cover
     allspec = np.full((max_waves, 4, 3, 4, n_obs), np.nan)
     allspec_orig = np.full((max_waves, 4, 3, 4, n_obs), np.nan)
 
-    gnames = ["short", "medium", "long"]
+    gnames = ["A", "B", "C"]
 
     # regions to mask for hot and A stars
     hnames, hwaves = get_h_waves()
@@ -72,20 +72,47 @@ if __name__ == "__main__":  # pragma: no cover
     offval = 0.15
     # MRS spectral resolution by channel/grating from JDox
     mrs_specres = {
-        "1short": (3320 + 3710) / 2.0,
-        "1medium": (3190 + 3750) / 2.0,
-        "1long": (3100 + 3610) / 2.0,
-        "2short": (2990 + 3110) / 2.0,
-        "2medium": (2750 + 3170) / 2.0,
-        "2long": (2860 + 3300) / 2.0,
-        "3short": (2860 + 3300) / 2.0,
-        "3medium": (1790 + 2640) / 2.0,
-        "3long": (1980 + 2790) / 2.0,
-        "4short": (1460 + 1930) / 2.0,
-        "4medium": (1680 + 1770) / 2.0,
-        "4long": (1630 + 1330) / 2.0,
+        "1A": (3320 + 3710) / 2.0,
+        "1B": (3190 + 3750) / 2.0,
+        "1C": (3100 + 3610) / 2.0,
+        "2A": (2990 + 3110) / 2.0,
+        "2B": (2750 + 3170) / 2.0,
+        "2C": (2860 + 3300) / 2.0,
+        "3A": (2860 + 3300) / 2.0,
+        "3B": (1790 + 2640) / 2.0,
+        "3C": (1980 + 2790) / 2.0,
+        "4A": (1460 + 1930) / 2.0,
+        "4B": (1680 + 1770) / 2.0,
+        "4C": (1630 + 1330) / 2.0,
     }
     rbres = 30000.0  # model resolution
+
+    # region with bad pixels that only affect some of the data
+    #   (dithernum, minwave, maxwave, estfunction)
+    mrs_badpix = {
+        "1A": [(2, 4.9300, 4.9400, np.nanmin),
+               (2, 4.9847, 4.9866, np.nanmin),
+               (2, 5.3821, 5.3842, np.nanmin),
+               (3, 5.5622, 5.5663, np.nanmin),
+               (4, 5.4039, 5.4066, np.nanmin)],
+        "1B": [(1, 5.7055, 5.7074, np.nanmax),
+               (1, 5.8939, 5.8971, np.nanmax),
+               (1, 6.2769, 6.2816, np.nanmax),
+               (1, 6.4240, 6.4257, np.nanmax),
+               (1, 6.4257, 6.4267, np.nanmin),
+               (2, 5.7557, 5.7601, np.nanmin),
+               (2, 6.2165, 6.2179, np.nanmin),
+               (2, 6.2408, 6.2442, np.nanmax),
+               (3, 5.9058, 5.9074, np.nanmin),
+               (3, 5.9440, 5.9470, np.nanmax),
+               (3, 6.2773, 6.2801, np.nanmin),
+               (3, 6.3773, 6.2802, np.nanmin),
+               (3, 6.4240, 6.4281, np.nanmin),
+               (4, 5.7764, 5.7793, np.nanmin),
+               (4, 5.9073, 5.9090, np.nanmin),
+               (4, 6.2694, 6.2706, np.nanmin)],
+        "1C": [(4, 7.2035, 7.2076, np.nanmax)], 
+    }
 
     if args.dithsub:
         extstr = "_dithsub"
@@ -142,11 +169,15 @@ if __name__ == "__main__":  # pragma: no cover
                         else:
                             if cname == "etaUMa":
                                 # remove all of chanel 1 - saturation issues
+                                # but keep channel 4 as this star is bright!
                                 if min(pwave.value) < 7.0:
                                     useseg = False
                             else:
                                 # remove all of channel 4 - low S/N
                                 if max(pwave.value) > 20.0:
+                                    useseg = False
+                            if cname == "delUMi":  # saturation issues
+                                if min(pwave.value) < 5.0:
                                     useseg = False
 
                         # do not use G stars for chan 1 short/medium, molecular lines
@@ -224,13 +255,43 @@ if __name__ == "__main__":  # pragma: no cover
     sigfac = 4.0
     stdfunc = "mad_std"
     grow = None
-    fclipped = sigma_clipped_stats(
-        allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow
-    )  # , cenfunc=custest)
+    # fclipped = sigma_clipped_stats(
+    #     allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow
+    # )  # , cenfunc=custest)
     allspec_clipped = sigma_clip(
         allspec, axis=4, sigma=sigfac, stdfunc=stdfunc, grow=grow
     )
-    avefringes = fclipped[0]
+
+    # now with max for the few bad pixels
+    for cseg in mrs_badpix.keys():
+        i = int(cseg[0]) - 1
+        if cseg[1] == "A":
+            j = 0
+        elif cseg[1] == "B":
+            j = 1
+        else:
+            j = 2
+        for creg in mrs_badpix[cseg]:
+            print(creg)
+            dithnum, minwave, maxwave, centfunc = creg
+            k = dithnum - 1
+            bvals,  = np.where((allwave[:, i, j] > minwave) & (allwave[:, i, j] < maxwave))
+            # at each wavelength, use a different estimator and fixed sigma value
+            for ll in bvals:
+                # print(allspec_clipped[ll, i, j, k, :].mask)
+                # print(allspec_clipped[ll, i, j, k, :])
+                # print(np.nanmean(allspec_clipped[ll, i, j, k, :]))
+                allspec_clipped[ll, i, j, k, :].mask[:] = False
+                estval = centfunc(allspec_clipped[ll, i, j, k, :])
+                bvals = np.absolute(allspec_clipped[ll, i, j, k, :] - estval) > 0.02
+                allspec_clipped[ll, i, j, k, :].mask[bvals] = True
+                # print(estval)
+                # print(allspec_clipped[ll, i, j, k, :].mask)
+                # print(allspec_clipped[ll, i, j, k, :])
+                # print(np.nanmean(allspec_clipped[ll, i, j, k, :]))
+
+    avefringes = np.nanmean(allspec_clipped, axis=4)
+    # avefringes = fclipped[0]
     for i in range(4):  # channels
         otab = QTable()
         for j in range(3):  # grating settings
@@ -312,7 +373,7 @@ if __name__ == "__main__":  # pragma: no cover
     if args.onlyseg:
         xlim = ax.get_xlim()
         x1 = xlim[0] + 0.05 * (xlim[1] - xlim[0])
-        ptext = f"{args.onlyseg[0]} {args.onlyseg[1:]}"
+        ptext = f"{args.onlyseg[0]}{args.onlyseg[1:]}"
         ax.text(x1, 1.8, ptext, fontsize=0.8 * fontsize)
 
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
