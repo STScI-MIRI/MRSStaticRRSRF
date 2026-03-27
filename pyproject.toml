@@ -24,7 +24,7 @@ dynamic = ["version"]
 pfpc_proc = "MRS_PFPC.pfpc_proc:main"
 pfpc_cor = "MRS_PFPC.pfpc_cor:main"
 pfpc_plot = "MRS_PFPC.plotting.plot_pfpc:main"
-pfpc_plot_3ways = "MRS_PFPC.plotting.plot_mrs_x1d_3ways:main"
+pfpc_plot_overlapcor = "MRS_PFPC.plotting.plot_overlapcor:main"
 
 [project.optional-dependencies]
 test = [

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from astropy.table import QTable
 import astropy.units as u
 from astropy.io import fits
+from astropy.convolution import Gaussian1DKernel, convolve
 
 from MRS_PFPC.utils.helpers import pcolors, get_h_waves
 
@@ -41,6 +42,7 @@ def main():
     parser.add_argument(
         "--showchan4", help="show channel 4 with other channels", action="store_true"
     )
+    parser.add_argument("--model", help="add a model to the plot")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -66,16 +68,11 @@ def main():
         for gr in ["short", "medium", "long"]:
             files.append(f"{sname}/{sname}_{filetag}_ch{ch+1}-{gr}_x1d.fits")
 
-    n_orders = len(files)
-    res = 2500.0
-    wrange = [2.3, 32.0]
-    dwave = 6.25 / (2 * res)
-    nwaves = int((wrange[1] - wrange[0]) / dwave)
-    allspec = np.full((nwaves, n_orders), np.nan)
-    allunc = np.full((nwaves, n_orders), np.nan)
     offval = None
 
     lab_xvals = np.zeros(3)
+
+    data_xrange = np.array((100.0, 0.0))
 
     # fmt: on
     for k, cfile in enumerate(files):
@@ -107,6 +104,11 @@ def main():
         cfluxrf = itab["RF_FLUX"].value
         cwave = itab["WAVELENGTH"].value
         cunc = itab["FLUX_ERROR"].value
+
+        if np.nanmin(cwave) < data_xrange[0]:
+            data_xrange[0] = np.nanmin(cwave)
+        if np.nanmax(cwave) > data_xrange[1]:
+            data_xrange[1] = np.nanmax(cwave)
 
         if args.dithsub:
             dscflux = itab_dithsub[fluxkey].value
@@ -263,7 +265,29 @@ def main():
             yrange = ax.get_ylim()
 
     yrange = np.array(yrange)
+
+    if args.model:
+        xrange = np.array(ax.get_xlim())
+        mtab = QTable.read(f"{args.model}")
+        mwave = mtab["wavelength"].value * u.micron
+        mflux = mtab["flux"]
+
+        # convolve to approximate channels 1-3 resolution
+        rbres = 40000.0  # model resolution
+        fwhm_pix = rbres / 2500.0
+        g = Gaussian1DKernel(stddev=fwhm_pix / 2.355)
+        mflux = convolve(mflux, g)
+
+        mflux *= mwave**2
+        mflux = mflux * (yrange[1] + 0.1 * (yrange[1] - yrange[0])) / np.average(mflux)
+    
+        gvals = (mwave > data_xrange[0] * u.micron) & (mwave < data_xrange[1] * u.micron)
+        ax.plot(mwave[gvals], mflux[gvals], "k-", alpha=0.5)
+
+    yrange[1] = yrange[1] + 0.2 * (yrange[1] - yrange[0])
+
     # yrange[1] = yrange[1] + 2 * offval
+    yrange[0] = yrange[0] - 0.1 * (yrange[1] - yrange[0])
 
     if args.dithsub:
         ax.text(
@@ -286,19 +310,25 @@ def main():
     hnames, hwaves = get_h_waves()
 
     for cname, cwave in zip(hnames, hwaves):
-        ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
-        ax.text(
-            cwave,
-            y1,
-            cname,
-            rotation="vertical",
-            ha="center",
-            va="center",
-            fontsize=0.6 * fontsize,
-            alpha=0.5,
-        )
+        showline = True
+        if not args.showchan4 and (cwave > 18.0):
+            showline = False
+        if showline:
+            ax.plot([cwave, cwave], yrange, "k:", alpha=0.25)
+            ax.text(
+                cwave,
+                y1,
+                cname,
+                rotation="vertical",
+                ha="center",
+                va="center",
+                fontsize=0.6 * fontsize,
+                alpha=0.25,
+            )
 
-    # ax.set_xlim(3.8, 18.3)
+    xrange = np.array(ax.get_xlim())
+    xrange[0] = xrange[0] - 0.03 * (xrange[1] - xrange[0])
+    ax.set_xlim(xrange)
     ax.set_ylim(yrange)
     ax.set_title(sname)
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
@@ -306,7 +336,7 @@ def main():
 
     plt.tight_layout()
 
-    fname = f"{sname}/{sname}_3ways"
+    fname = f"figs/{sname}_overlapcor"
     if args.png:
         fig.savefig(f"{fname}.png")
     elif args.pdf:
