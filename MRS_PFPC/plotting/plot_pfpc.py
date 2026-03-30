@@ -271,6 +271,8 @@ def main():
         otab["FLUX"] = itab["FLUX"] * multfac
         otab["FLUX_ERROR"] = itab["FLUX_ERROR"] * multfac
         otab["RF_FLUX"] = itab["RF_FLUX"] * multfacrf
+        h["OVCOR"] = (multfac, "Segment overlap correction")
+        h["OVCOR_RF"] = (multfac, "Segment w/ rfcor overlap correction")
         hdu1 = fits.PrimaryHDU(header=h)
         hdu2 = fits.BinTableHDU(otab)
         hdulist = fits.HDUList([hdu1, hdu2])

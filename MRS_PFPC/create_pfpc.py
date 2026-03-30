@@ -180,8 +180,20 @@ if __name__ == "__main__":  # pragma: no cover
                             curcalver = h["CAL_VER"]
                             if calver is None:
                                 calver = curcalver
+                                patttype = h["PATTTYPE"]
+                                dithdirc = h["DITHDIRC"]
+                                dithopfr = h["DITHOPFR"]
+                                mrsprchn = h["MRSPRCHN"]
                             if curcalver != calver:
-                                print("files have different calibration versions")
+                                print("files have different calibration versions (CAL_VER)")
+                            if h["PATTTYPE"] != patttype:
+                                print("files have different dither pattern types (PATTTYPE)")
+                            if h["DITHDIRC"] != dithdirc:
+                                print("files have different dither directions (DITHDIRC)")
+                            if h["DITHOPFR"] != dithopfr:
+                                print("files have different dither pattern optimizations (DITHOPFR)")
+                            if h["MRSPRCHN"] != mrsprchn:
+                                print("files have different dither channel optimizations (MRSPRCHN)")
 
                         pcol = "b"
                         pwave = atab["WAVELENGTH"]
@@ -341,6 +353,11 @@ if __name__ == "__main__":  # pragma: no cover
                     )
 
                 otab.meta["CAL_VER"] = calver
+                otab.meta["PATTTYPE"] = patttype
+                otab.meta["DITHDIRC"] = dithdirc
+                otab.meta["DITHOPFR"] = dithopfr
+                otab.meta["MRSPRCHN"] = mrsprchn
+
                 otab.meta["MRS-PFPC"] = "MRS Point Fixed Pattern Correction"
                 otab.meta["REPO"] = "https://github.com/STScI-MIRI/MRS-PFPC"
                 otab.meta["REF"] = "Gordon et al. (2026, in prep)"

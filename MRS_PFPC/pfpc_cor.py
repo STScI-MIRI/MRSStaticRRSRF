@@ -140,6 +140,10 @@ def main():
         rfile = f"{ref_path}/mrs_pfpc{extstr}_chn{chn}_{band}.fits"
         rtab = QTable.read(rfile)
         pfpc_calver = rtab.meta["CAL_VER"]
+        pfpc_patttype = rtab.meta["PATTTYPE"]
+        pfpc_dithdirc = rtab.meta["DITHDIRC"]
+        pfpc_dithopfr = rtab.meta["DITHOPFR"]
+        pfpc_mrsprchn = rtab.meta["MRSPRCHN"]
         gvals = np.isfinite(rtab["wavelength"])
 
         if args.dithsub:
@@ -156,8 +160,20 @@ def main():
             pipehead = fits.getheader(pipefile)
         # check the pipeline version between the PFPC and data
         pipever = pipehead["CAL_VER"]
+        pipe_patttype = pipehead["PATTTYPE"]
+        pipe_dithdirc = pipehead["DITHDIRC"]
+        pipe_dithopfr = pipehead["DITHOPFR"]
+        pipe_mrsprchn = pipehead["MRSPRCHN"]
         if pipever != pfpc_calver:
-            print(f"Data pipeline version ({pipever}) does not match PFPC pipeline version ({pfpc_calver})")
+            print(f"Data pipeline version ({pipever}) does not match PFPC ({pfpc_calver})")
+        if pipe_patttype != pfpc_patttype:
+            print(f"Data dither pattern type ({pipe_patttype}) does not match PFPC ({pfpc_patttype})")
+        if pipe_dithdirc != pfpc_dithdirc:
+            print(f"Data dither direction ({pipe_dithdirc}) does not match PFPC ({pfpc_dithdirc})")
+        if pipe_dithopfr != pfpc_dithopfr:
+            print(f"Data dither pattern optimization ({pipe_dithopfr}) does not match PFPC ({pfpc_dithopfr})")
+        if pipe_mrsprchn != pfpc_mrsprchn:
+            print(f"Data dither channel optimization ({pipe_mrsprchn}) does not match PFPC ({pfpc_mrsprchn})")
 
         pipewave = np.array(ptab["WAVELENGTH"].data)
         if args.asteroid:
