@@ -60,6 +60,12 @@ command.
 
 `$ pfpc_cor object_name`
 
+A plot giving the comparision of the PFPC corrected spectra with the default pipeline
+spectra can shown with the following command.  This shows the PFPC and pipeline 
+spectra w/ and w/o residual fringe correction.  The segments are corrected to have
+the same levels using the overlap regions betweewn segements.
+
+`$ pfpc_plot object_name`
 
 Help for any of these commands can be seen with by adding `--help` when running
 the command on the command line (e.g., `$pfpc_proc --help`).
@@ -69,10 +75,31 @@ PFPC Creation
 
 Data for each flux calibration star or asteroid is saved in a subdirectory named
 after the star or asteroid. The raw data files are needed (uncal files) and
-these are downloaded from the jwst archive.  See the `create_pfpc.py` for
+these are downloaded from the jwst archive.  See the `utils/helpers.py` for
 the expected set of flux calibration stars and asteroids.
 
 Models downloaded from CALSPEC and stored in `models/` subdir.  Models rebinned to 
 a reasonable resolution using `utils/rebin_models.py`.
 
 The PFPCs for all 12 MRS bands are created using by running `create_pfpc.py`.
+
+Papers Figures
+--------------
+
+1. PFPC creation examples for 4 segments.
+
+2. PFPCs w/o and w/ residualf ringe correction for each channel.
+
+3. Example of applying the PFPC to a star.
+
+`pfpc_cor HD163466_c1 --chan 2`
+
+4. S/N plots showing PFPC improvements for all the observations of HD 163466.  Uses
+the S/N measurements made when the PFPC correction is applied to each observation.
+This includes the coadd of all the different epochs.
+
+`python MRS_PFPC/plotting/plot_sn_improve.py --names HD163466_c1 HD163466_c2_e1  HD163466_c2_e2 HD163466_c2_e3 HD163466_c2_e4 HD163466_c2_e5 HD163466_c2_e6 HD163466_c2_e8 HD163466_c2_e9 HD163466_c2_e10 HD163466_c2_e11 HD163466_c3_e1 HD163466_c3_e2 HD163466_c3_e3 HD163466_c3_e4 HD163466_coadd`
+
+5. Removal of spectral artifacts overview using HD 163466 coadd.
+
+`pfpc_plot HD163466_coadd --model models/hd163466_mod_005_r10000.fits`

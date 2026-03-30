@@ -13,13 +13,14 @@ from astropy.modeling import models, fitting
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--outbase", help="base filename of coadd output")
     parser.add_argument(
         "--showchan4", help="show channel 4 with other channels", action="store_true"
     )
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
+
+    args.outbase = "HD163466_coadd/HD163466_coadd"
 
     # S/N regions
     snreg = {"1short": [5.28, 5.35], "1medium": [6.0, 6.1], "1long": [7.1, 7.25],
@@ -32,7 +33,7 @@ if __name__ == "__main__":
              "HD163466_c2_e1",
              "HD163466_c2_e2",
              "HD163466_c2_e3",
-             # "HD163466_c2_e4",
+             "HD163466_c2_e4",
              "HD163466_c2_e5",
              "HD163466_c2_e6",
              # "HD163466_c2_e7",
@@ -40,6 +41,10 @@ if __name__ == "__main__":
              "HD163466_c2_e9",
              "HD163466_c2_e10",
              "HD163466_c2_e11",
+             "HD163466_c3_e1",
+             "HD163466_c3_e2",
+             "HD163466_c3_e3",
+             "HD163466_c3_e4",
              ]
     nobs = len(names)
 
@@ -67,6 +72,8 @@ if __name__ == "__main__":
     plt.rc("ytick.minor", width=2)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+
+    print("segment: pfpc w/ rf, pipe w/ rf, pfpc, pipe")
 
     for i in range(4):  # channels
         otab = QTable()
@@ -219,14 +226,15 @@ if __name__ == "__main__":
                 tratio = pflux_nrf[gvals] / fitted_line(allwave[gvals])
                 sstats_pipe = sigma_clipped_stats(tratio)
 
-                print(ckey, sstats_rf[0]/ sstats_rf[2], sstats[0]/ sstats[2])
+                pfpc_sn_rf = sstats_rf[0]/ sstats_rf[2]
+                pfpc_sn = sstats[0]/ sstats[2]
+                pipe_sn_rf = sstats_pipe_rf[0] / sstats_pipe_rf[2]
+                pipe_sn = sstats_pipe[0] / sstats_pipe[2]
+
+                print(f"{ckey:10}: {pfpc_sn_rf:.2f} {pipe_sn_rf:.2f} {pfpc_sn:.2f} {pipe_sn:.2f}")
 
                 sntab.add_row([f"{chn}{band}", snreg[ckey][0], snreg[ckey][0],
-                            sstats[0] / sstats[2],
-                            sstats_rf[0] / sstats_rf[2],
-                            sstats_pipe[0] / sstats_pipe[2],
-                            sstats_pipe_rf[0] / sstats_pipe_rf[2],
-                            ])
+                               pfpc_sn, pfpc_sn_rf, pipe_sn, pipe_sn_rf])
 
     snfile = f"{args.outbase}_pfpc_sn.fits"
     sntab.write(snfile, overwrite=True)
