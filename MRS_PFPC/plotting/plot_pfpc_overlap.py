@@ -36,6 +36,8 @@ def main():
     args = parser.parse_args()
 
     fontsize = 14
+    if args.paperfig:
+        fontsize= 18
     font = {"size": fontsize}
     plt.rc("font", **font)
     plt.rc("lines", linewidth=1)
@@ -235,7 +237,7 @@ def main():
     if args.paperfig:
         # ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
         ax.text(
-            5.8,
+            5.81,
             10.1,
             "Artifact Feature",
             rotation="vertical",
