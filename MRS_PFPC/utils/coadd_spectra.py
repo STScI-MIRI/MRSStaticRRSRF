@@ -13,6 +13,10 @@ from astropy.modeling import models, fitting
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--outbase", help="base filename of coadd output")
+    parser.add_argument(
+        "--showchan4", help="show channel 4 with other channels", action="store_true"
+    )
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -39,6 +43,16 @@ if __name__ == "__main__":
              ]
     nobs = len(names)
 
+    # save the S/N measurements
+    sntab = QTable(
+        # fmt: off
+        names=("Segment", "minwave", "maxwave",
+               "sn_pfpc", "sn_pfpc_rfcor", "sn_pipe", "sn_pipe_rfcor"),
+        dtype=("S", "f", "f",
+               "f", "f", "f", "f")
+        # fmt:on
+    )
+
     fontsize = 16
 
     font = {"size": fontsize}
@@ -54,13 +68,20 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
 
-    for i in range(3):  # channels
+    for i in range(4):  # channels
         otab = QTable()
         # for j in range(3):  # grating settings
+
+        if (not args.showchan4) & (i == 3):
+            showseg = False
+        else:
+            showseg = True
+
         for gr in ["short", "medium", "long"]:
 
             allwave = None
             dithave = np.zeros(nobs)
+            pipedithave = np.zeros(nobs)
             for k, sname in enumerate(names):
                 cfile = f"{sname}/{sname}_pfpc_ch{i+1}-{gr}_x1d.fits"
 
@@ -88,22 +109,34 @@ if __name__ == "__main__":
                     allspec = np.full((nwaves, nobs), np.nan)
                     allspec_rf = np.full((nwaves, nobs), np.nan)
 
+                    pipespec = np.full((nwaves, nobs), np.nan)
+                    pipespec_rf = np.full((nwaves, nobs), np.nan)
+
                 allspec[:, k] = itab["FLUX"].value
                 allspec_rf[:, k] = itab["RF_FLUX"].value
 
+                pipespec[:, k] = pipetab["FLUX"].value
+                pipespec_rf[:, k] = pipetab["RF_FLUX"].value
+
                 dithave[k] = np.nanmedian(allspec[:, k])
+                pipedithave[k] = np.nanmedian(pipespec[:, k])
 
             dave = np.average(dithave)
+            pipedave = np.average(pipedithave)
 
             for k in range(nobs):
                 allspec[:, k] *= dave / dithave[k]
                 allspec_rf[:, k] *= dave / dithave[k]
 
-                pflux = allwave * allwave * allspec[:, k]
-                ax.plot(allwave, pflux)
+                pipespec[:, k] *= pipedave / pipedithave[k]
+                pipespec_rf[:, k] *= pipedave / pipedithave[k]
 
-                pflux = allwave * allwave * allspec_rf[:, k]
-                ax.plot(allwave, pflux + 3.0)
+                if showseg:
+                    pflux = allwave * allwave * allspec_rf[:, k]
+                    ax.plot(allwave, pflux + 3.0)
+
+                    pflux = allwave * allwave * pipespec_rf[:, k]
+                    ax.plot(allwave, pflux)
 
             sigfac = 4.0
             stdfunc = "mad_std"
@@ -116,13 +149,47 @@ if __name__ == "__main__":
                 allspec_rf, axis=1, sigma=sigfac, stdfunc=stdfunc, grow=grow
             )
 
+            pipeclipped = sigma_clipped_stats(
+                pipespec, axis=1, sigma=sigfac, stdfunc=stdfunc, grow=grow
+            )
+            pipeclipped_rf = sigma_clipped_stats(
+                pipespec_rf, axis=1, sigma=sigfac, stdfunc=stdfunc, grow=grow
+            )
+
             avespec = specclipped[0]
-            pflux = allwave * allwave * avespec
-            ax.plot(allwave, pflux + 1.0, "k-")
- 
             avespec_rf = specclipped_rf[0]
-            pflux_rf = allwave * allwave * avespec_rf
-            ax.plot(allwave, pflux_rf + 4.0, "k-")
+
+            pipespec = pipeclipped[0]
+            pipespec_rf = pipeclipped_rf[0]
+
+            pflux = allwave * allwave * avespec_rf
+            pflux2 = allwave * allwave * pipespec_rf
+            if showseg:
+                ax.plot(allwave, pflux + 4.0, "k-")
+                ax.plot(allwave, pflux2 + 1.0, "k-")
+
+            if args.outbase:
+                ofile = f"{args.outbase}_pfpc_ch{chn}-{band}_x1d.fits"
+                otab = QTable()
+                otab["WAVELENGTH"] = allwave
+                otab["FLUX"] = avespec
+                otab["FLUX_ERROR"] = specclipped[2]
+                otab["RF_FLUX"] = avespec_rf
+                hdu1 = fits.PrimaryHDU(header=h)
+                hdu2 = fits.BinTableHDU(otab, header=h)
+                hdulist = fits.HDUList([hdu1, hdu2])
+                hdulist.writeto(ofile, overwrite=True)
+
+                ofile = f"{args.outbase}_level3_ch{chn}-{band}_x1d.fits"
+                otab = QTable()
+                otab["WAVELENGTH"] = allwave
+                otab["FLUX"] = pipespec
+                otab["FLUX_ERROR"] = pipeclipped[2]
+                otab["RF_FLUX"] = pipespec_rf
+                hdu1 = fits.PrimaryHDU(header=h)
+                hdu2 = fits.BinTableHDU(otab, header=h)
+                hdulist = fits.HDUList([hdu1, hdu2])
+                hdulist.writeto(ofile, overwrite=True)
 
             ckey = f"{chn}{band}"
             if ckey in snreg.keys():
@@ -131,16 +198,38 @@ if __name__ == "__main__":
                 gvals = (allwave >= snreg[ckey][0]) & (allwave <= snreg[ckey][1])
 
                 # final
-                fitted_line = fit(line_init, allwave[gvals], pflux_rf[gvals])
-                tratio = pflux_rf[gvals] / fitted_line(allwave[gvals])
+                fitted_line = fit(line_init, allwave[gvals], pflux[gvals])
+                tratio = pflux[gvals] / fitted_line(allwave[gvals])
                 sstats_rf = sigma_clipped_stats(tratio)
 
                 # before residual fringe
-                fitted_line = fit(line_init, allwave[gvals], pflux[gvals])
-                tratio = pflux[gvals] / fitted_line(allwave[gvals])
+                pflux_nrf = allwave * allwave * avespec
+                fitted_line = fit(line_init, allwave[gvals], pflux_nrf[gvals])
+                tratio = pflux_nrf[gvals] / fitted_line(allwave[gvals])
                 sstats = sigma_clipped_stats(tratio)
 
+                # final: pipeline
+                fitted_line = fit(line_init, allwave[gvals], pflux2[gvals])
+                tratio = pflux2[gvals] / fitted_line(allwave[gvals])
+                sstats_pipe_rf = sigma_clipped_stats(tratio)
+
+                # before residual fringe: pipeline
+                pflux_nrf = allwave * allwave * pipespec
+                fitted_line = fit(line_init, allwave[gvals], pflux_nrf[gvals])
+                tratio = pflux_nrf[gvals] / fitted_line(allwave[gvals])
+                sstats_pipe = sigma_clipped_stats(tratio)
+
                 print(ckey, sstats_rf[0]/ sstats_rf[2], sstats[0]/ sstats[2])
+
+                sntab.add_row([f"{chn}{band}", snreg[ckey][0], snreg[ckey][0],
+                            sstats[0] / sstats[2],
+                            sstats_rf[0] / sstats_rf[2],
+                            sstats_pipe[0] / sstats_pipe[2],
+                            sstats_pipe_rf[0] / sstats_pipe_rf[2],
+                            ])
+
+    snfile = f"{args.outbase}_pfpc_sn.fits"
+    sntab.write(snfile, overwrite=True)
 
     fig.tight_layout()
 

@@ -75,41 +75,59 @@ if __name__ == "__main__":  # pragma: no cover
                 if (sn4 / sn4) > max_ratio:
                     max_ratio = sn4 / sn2
 
-                # versus wavelength
-                ax[0, 0].plot(
-                    [cwave],
-                    [sn3 / sn1],
-                    marker=segsym[segnum],
-                    color=scolor,
-                    label=pname,
-                )
+                markers = [segsym[segnum]]
+                fillstyles = ["full"]
+                markersizes = [5]
 
-                ax[0, 1].plot(
-                    [cwave],
-                    [sn4 / sn2],
-                    marker=segsym[segnum],
-                    color=scolor,
-                    label=pname,
-                )
+                if "coadd" in cname:
+                    markers.append("o")
+                    fillstyles.append("none")
+                    markersizes.append(10)
 
-                # versus pipeline S/N
-                ax[1, 0].plot(
-                    #[sn1],
-                    [sn3],
-                    [sn3 / sn1],
-                    marker=segsym[segnum],
-                    color=scolor,
-                    label=pname,
-                )
-                ax[1, 1].plot(
-                    #[sn2],
-                    [sn4],
-                    [sn4 / sn2],
-                    marker=segsym[segnum],
-                    color=scolor,
-                    label=pname,
-                )
-                pname = None
+                for cmarker, cfillstyle, cms in zip(markers, fillstyles, markersizes):
+                    # versus wavelength
+                    ax[0, 0].plot(
+                        [cwave],
+                        [sn3 / sn1],
+                        marker=cmarker,
+                        fillstyle=cfillstyle,
+                        markersize=cms,
+                        color=scolor,
+                        label=pname,
+                    )
+
+                    ax[0, 1].plot(
+                        [cwave],
+                        [sn4 / sn2],
+                        marker=cmarker,
+                        fillstyle=cfillstyle,
+                        markersize=cms,
+                        color=scolor,
+                        label=pname,
+                    )
+
+                    # versus pipeline S/N
+                    ax[1, 0].plot(
+                        # [sn1],
+                        [sn3],
+                        [sn3 / sn1],
+                        marker=cmarker,
+                        fillstyle=cfillstyle,
+                        markersize=cms,
+                        color=scolor,
+                        label=pname,
+                    )
+                    ax[1, 1].plot(
+                        # [sn2],
+                        [sn4],
+                        [sn4 / sn2],
+                        marker=cmarker,
+                        fillstyle=cfillstyle,
+                        markersize=cms,
+                        color=scolor,
+                        label=pname,
+                    )
+                    pname = None
 
     ax[0, 1].set_title("with residual fringe correction")
 
@@ -119,15 +137,17 @@ if __name__ == "__main__":  # pragma: no cover
         ax[0, i].set_xscale("log")
         ax[0, i].xaxis.set_major_formatter(ticker.ScalarFormatter())
         ax[0, i].xaxis.set_minor_formatter(ticker.ScalarFormatter())
-        ax[0, i].set_xticks([5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 15.0, 20.0, 25.0], minor=True)
+        ax[0, i].set_xticks(
+            [5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 15.0, 20.0, 25.0], minor=True
+        )
         ax[0, i].tick_params(axis="x", which="minor", labelsize=fontsize * 0.8)
         ax[0, i].set_xlabel(r"$\lambda$ [$\mu$m]")
 
         ax[1, i].set_xlabel("PFPC S/N")
 
         for k in range(int(max_ratio)):
-            ax[0, i].axhline(k+1, linestyle=":", color="k", alpha=0.5)
-            ax[1, i].axhline(k+1, linestyle=":", color="k", alpha=0.5)
+            ax[0, i].axhline(k + 1, linestyle=":", color="k", alpha=0.5)
+            ax[1, i].axhline(k + 1, linestyle=":", color="k", alpha=0.5)
 
     ax[0, 1].legend(fontsize=0.6 * fontsize, ncol=3, handlelength=0, handletextpad=2.0)
 

@@ -105,7 +105,7 @@ def main():
             f"{cname}/jw*_00001_*long_?_x1d.fits"
         )
 
-    # save te S/N measurements
+    # save the S/N measurements
     sntab = QTable(
         # fmt: off
         names=("Segment", "minwave", "maxwave",
