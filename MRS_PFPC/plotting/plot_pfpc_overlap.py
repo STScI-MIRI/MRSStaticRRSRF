@@ -30,6 +30,7 @@ def main():
     parser.add_argument("--onlyseg", help="show only one segment")
     parser.add_argument("--notrfcor", help="Use the FLUX, not the RF_FLUX", action="store_true")
     parser.add_argument("--notrj", help="plot F(nu), not lambda^2 F(nu)", action="store_true")
+    parser.add_argument("--paperfig", help="zoomed plot for paper", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -60,7 +61,7 @@ def main():
     files = []
     for ch in range(4):
         for gr in ["short", "medium", "long"]:
-            files.append(f"{sname}/{sname}_{filetag}_ch{ch+1}-{gr}_x1d.fits")
+            files.append(f"{sname}/{sname}_{filetag}_olapcor_ch{ch+1}-{gr}_x1d.fits")
 
     n_orders = len(files)
     res = 2500.0
@@ -75,7 +76,7 @@ def main():
 
     allmultsfacs = np.full(12, np.nan)
 
-    # fmt: on
+    show_label = True
     for k, cfile in enumerate(files):
         pipefile = cfile.replace("pfpc", "level3")
         # get details of segment so the right color can be used
@@ -114,19 +115,27 @@ def main():
 
         offval = 0.0
 
+        if show_label:
+            plabel_pfpc = "PFPC"
+            plabel_pipe = "Pipeline"
+        else:
+            plabel_pfpc = None
+            plabel_pipe = None
+
         if args.notrj:
             tpipeflux = pipeflux
         else:
             tpipeflux = pipeflux * np.power(pipewave, 2.0)
         if showseg:
-            ax.plot(pipewave, tpipeflux - offval, linestyle="--", color="k", alpha=0.7)
+            ax.plot(pipewave, tpipeflux - offval, linestyle="--", color=pcol, alpha=0.7,
+                    label=plabel_pipe)
 
         if args.notrj:
             tpflux = cflux
         else:
             tpflux = cflux * np.power(cwave, 2.0)
         if showseg:
-            ax.plot(cwave, tpflux, linestyle="-", color=pcol, alpha=0.7)
+            ax.plot(cwave, tpflux, linestyle="-", color=pcol, alpha=0.7, label=plabel_pfpc)
 
         nwave, nflux, nunc, nnpts = rebin_constres(
             cwave * u.micron, cflux, cunc, wrange * u.micron, 2 * res
@@ -134,6 +143,8 @@ def main():
         nwave_pipe, nflux_pipe, nunc_pipe, nnpts_pipe = rebin_constres(
             pipewave * u.micron, pipeflux, pipeunc, wrange * u.micron, 2 * res
         )
+
+        multfac = 1.0
 
         # determine the overlap with the previous spectrum
         if k == 0:
@@ -157,7 +168,8 @@ def main():
                 multfac *= ave2 / ave1
             else:
                 multfac = 1.0
-            print(ave1, ave2, multfac)
+
+        multfac = 1.0  # ignore the above
 
         pwave = cwave
         pflux = cflux
@@ -189,6 +201,8 @@ def main():
         if chn < 4:
             yrange = ax.get_ylim()
 
+        show_label = False
+
     xrange = ax.get_xlim()
     yrange = np.array(yrange)
     yrange[1] = yrange[1] + 2 * offval
@@ -218,18 +232,31 @@ def main():
     y1 = yrange[0] + 0.05 * (yrange[1] - yrange[0])
     hnames, hwaves = get_h_waves()
 
-    for cname, cwave in zip(hnames, hwaves):
-        ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
+    if args.paperfig:
+        # ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
         ax.text(
-            cwave,
-            y1,
-            cname,
+            5.8,
+            10.1,
+            "Artifact Feature",
             rotation="vertical",
             ha="center",
             va="center",
-            fontsize=0.6 * fontsize,
+            fontsize=0.9 * fontsize,
             alpha=0.7,
         )
+    else:
+        for cname, cwave in zip(hnames, hwaves):
+            ax.plot([cwave, cwave], yrange, "k:", alpha=0.5)
+            ax.text(
+                cwave,
+                y1,
+                cname,
+                rotation="vertical",
+                ha="center",
+                va="center",
+                fontsize=0.6 * fontsize,
+                alpha=0.7,
+            )
 
     ax.set_xlim(xrange)
     ax.set_ylim(yrange)
@@ -240,9 +267,20 @@ def main():
     ax.set_xlabel(r"$\lambda$ [$\mu$m]")
     ax.set_ylabel(r"$\lambda^2 F(\nu)$ [$\mu$m$^2$ Jy = RJ units]")
 
+    if args.paperfig:
+        ax.set_xlim(4.85, 6.60)
+        ax.set_ylim(9.5, 11.25)
+
+    loc = None
+    if args.paperfig:
+        loc = "lower right"
+    ax.legend(loc=loc)
+
     plt.tight_layout()
 
-    fname = f"{sname}/{sname}_{extstr}spec"
+    fname = f"figs/{sname}_overlap"
+    if args.paperfig:
+        fname = f"{fname}_58_artifact"
     if args.png:
         fig.savefig(f"{fname}.png")
     elif args.pdf:

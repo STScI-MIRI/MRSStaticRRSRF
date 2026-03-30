@@ -40,7 +40,7 @@ def main():
         "--dithsub", help="use the pair dither subtraction data", action="store_true"
     )
     parser.add_argument(
-        "--showchan4", help="show channel 4 with other channels", action="store_true"
+        "--nochan4", help="do not show channel 4 with other channels", action="store_true"
     )
     parser.add_argument("--model", help="add a model to the plot")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
@@ -90,7 +90,7 @@ def main():
             bnum = 2
         pcol = pcolors[(chn - 1) * 3 + bnum]
 
-        if (not args.showchan4) & (chn == 4):
+        if (args.nochan4) & (chn == 4):
             continue
 
         with warnings.catch_warnings():
@@ -264,8 +264,8 @@ def main():
         if chn < 4:
             yrange = ax.get_ylim()
 
-        # output the segement with the overlap region correction
-        ofile = cfile.replace("pfpc", "pfpc_ocor")
+        # output the segment with the overlap region correction
+        ofile = cfile.replace("pfpc", "pfpc_olapcor")
         otab = QTable()
         otab["WAVELENGTH"] = itab["WAVELENGTH"]
         otab["FLUX"] = itab["FLUX"] * multfac
@@ -273,6 +273,20 @@ def main():
         otab["RF_FLUX"] = itab["RF_FLUX"] * multfacrf
         h["OVCOR"] = (multfac, "Segment overlap correction")
         h["OVCOR_RF"] = (multfac, "Segment w/ rfcor overlap correction")
+        hdu1 = fits.PrimaryHDU(header=h)
+        hdu2 = fits.BinTableHDU(otab)
+        hdulist = fits.HDUList([hdu1, hdu2])
+        hdulist.writeto(ofile, overwrite=True)
+
+        # output the segment with the overlap region correction for pipeline default
+        ofile = cfile.replace("pfpc", "level3_olapcor")
+        otab = QTable()
+        otab["WAVELENGTH"] = pipetab["WAVELENGTH"]
+        otab["FLUX"] = pipetab["FLUX"] * pmultfac
+        otab["FLUX_ERROR"] = pipetab["FLUX_ERROR"] * pmultfac
+        otab["RF_FLUX"] = pipetab["RF_FLUX"] * pmultfacrf
+        h["OVCOR"] = (pmultfac, "Segment overlap correction")
+        h["OVCOR_RF"] = (pmultfac, "Segment w/ rfcor overlap correction")
         hdu1 = fits.PrimaryHDU(header=h)
         hdu2 = fits.BinTableHDU(otab)
         hdulist = fits.HDUList([hdu1, hdu2])
@@ -331,7 +345,7 @@ def main():
 
     for cname, cwave in zip(hnames, hwaves):
         showline = True
-        if not args.showchan4 and (cwave > 18.0):
+        if args.nochan4 and (cwave > 18.0):
             showline = False
         if showline:
             ax.plot([cwave, cwave], yrange, "k:", alpha=0.25)
