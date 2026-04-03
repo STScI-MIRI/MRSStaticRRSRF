@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+
+for CSTAR in HD163466_c3_e1 HD163466_c3_e2 HD163466_c3_e3 HD163466_c3_e4 HD163466_c3_e5 HD163466_c3_e6 HD163466_c3_e7 HD163466_c3_e8 HD163466_c3_e9 HD163466_c3_e10
+
+do
+    nice -n 19 pfpc_proc $CSTAR >& logs/$CSTAR".log" &
+done
