@@ -77,6 +77,8 @@ if __name__ == "__main__":  # pragma: no cover
              "HD163466_c4_e3",
              "HD163466_c4_e4",
              ]
+    
+    names = names[0:10]
 
     for cname in names:
 
@@ -92,15 +94,25 @@ if __name__ == "__main__":  # pragma: no cover
                 chn = int(h["CHANNEL"])
                 band = h["BAND"].lower()
 
-                if (chn < 5) & (band == "long"):
+                if band == "short":
+                    bchr = "A"
+                elif band == "medium":
+                    bchr = "B"
+                else:
+                    bchr = "C"
+
+                print(chn, band, bchr)
+
+                if (chn < 5) & (band == "short"):
                     print(cfile)
                     # need the WCS from both files to get alpha, beta
                     if "_0_" in cfile:
                         rstr = "0"
                     else:
                         rstr = "1"
+                    calfile = cfile.replace(f"{rstr}_x1d", "cal")
                     cube = datamodels.open(cfile.replace(f"{rstr}_x1d", "s3d"))
-                    cal = datamodels.open(cfile.replace(f"{rstr}_x1d", "cal"))
+                    cal = datamodels.open(calfile)
 
                     h = fits.getheader(cfile, ext=1)
                     x = h["EXTR_X"]
@@ -110,6 +122,12 @@ if __name__ == "__main__":  # pragma: no cover
                     v2, v3 , _ = cal.meta.wcs.transform('world', "v2v3", ra, dec, lam)
                     alpha, beta ,_ = cal.meta.wcs.transform('world', 'alpha_beta', ra, dec, lam)
                     print(cdith, alpha, beta, lam)
+
+                    res = fit_trace(calfile, f"{chn}{bchr}")
+                    print("fit_trace: ", res["alpha"], res["beta"])
+
+                    ax[chn - 1].plot([res["alpha"]], [[res["beta"]]], color="black",
+                                        linestyle="none", mfc="none", marker="o")
 
                     #if chn == 1:
                         # print(cfile, x, y)

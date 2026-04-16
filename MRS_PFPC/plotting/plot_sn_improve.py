@@ -129,7 +129,10 @@ if __name__ == "__main__":  # pragma: no cover
                     )
                     pname = None
 
-    ax[0, 1].set_title("with residual fringe correction")
+    ax[0, 0].set_title("PFPC improvement vs pipeline")
+    ax[0, 1].set_title("PFPC improvement vs pipeline with rfcorr")
+    ax[1, 0].set_title("PFPC improvement w/ rfcorr")
+    ax[1, 1].set_title("Measured PFPC S/N w/ rfcorr")
 
     ax[0, 0].set_ylabel("(PFPC S/N)/(pipeline S/N)")
     ax[1, 0].set_ylabel("(PFPC S/N w/ rfcor)/(PFPC S/N)")

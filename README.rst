@@ -104,7 +104,7 @@ Papers Figures
 
 4. Removal of spectral artifacts overview using HD 163466 coadd.
 
-`pfpc_plot HD163466_coadd --model models/hd163466_mod_005_r10000.fits`
+`pfpc_plot HD163466_coadd --model models/hd163466_mod_005_r10000.fits --nochan4`
 
 5. 5.8 micron artifact example.
 
