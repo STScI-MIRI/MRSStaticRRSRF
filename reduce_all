@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-for CSTAR in muCol delUMi HR5467 HD2811_c1 HD2811_c2 HD2811_c3 HD2811_c4 16CygB HR6538 HD37962 HD167060 Athalia Jena
+for CSTAR in muCol delUMi HR5467 HD2811_c1 HD2811_c2 HD2811_c3 HD2811_c4 16CygB HR6538 HD37962 HD167060 Athalia Jena 10Lac
 
 do
     nice -n 19 pfpc_proc $CSTAR >& logs/$CSTAR".log" &
